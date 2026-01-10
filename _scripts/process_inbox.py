@@ -18,10 +18,17 @@ from state import (
     is_message_processed,
     mark_message_processed,
     cleanup_old_processed_messages,
+    record_successful_run,
+    record_failed_run,
+    log_to_dead_letter,
+    get_failed_count_today,
 )
 
 # Schema validation for classification responses
 from schema import validate_classification, create_fallback_classification, ValidationError
+
+# Alert threshold - send DM if this many failures in one day
+FAILURE_ALERT_THRESHOLD = 3
 
 VAULT_PATH = Path.home() / "SecondBrain"
 LAST_TS_FILE = VAULT_PATH / "_scripts/.last_processed_ts"
@@ -183,29 +190,25 @@ def log_to_inbox_log(original: str, destination: str, filename: str, confidence:
 
 # --- Main Loop ---
 
-def process_all():
-    """Main processing loop."""
-    messages = fetch_new_messages()
-    
-    if not messages:
-        print("No new messages to process")
-        return
-    
-    processed_count = 0
-    
-    for msg in reversed(messages):  # Process oldest first
-        text = msg["text"]
-        ts = msg["ts"]
-        timestamp = datetime.fromtimestamp(float(ts)).isoformat()
+def process_message(msg: dict) -> bool:
+    """
+    Process a single message.
 
-        # Skip fix: commands - handled by fix_handler.py
-        if text.lower().startswith("fix:"):
-            continue
+    Returns True if successful, False if failed (logged to dead letter).
+    """
+    text = msg["text"]
+    ts = msg["ts"]
+    timestamp = datetime.fromtimestamp(float(ts)).isoformat()
 
-        # Idempotency check - skip already processed messages
-        if is_message_processed(ts):
-            continue
+    # Skip fix: commands - handled by fix_handler.py
+    if text.lower().startswith("fix:"):
+        return True  # Not a failure, just skipped
 
+    # Idempotency check - skip already processed messages
+    if is_message_processed(ts):
+        return True  # Already processed
+
+    try:
         # Classify and validate
         try:
             raw_classification = classify_thought(text)
@@ -217,7 +220,7 @@ def process_all():
 
         conf = classification["confidence"]
         dest = classification["destination"]
-        
+
         if conf >= 0.6:
             # File it
             filepath = write_to_obsidian(classification, text, timestamp)
@@ -232,7 +235,6 @@ def process_all():
                 f"Confidence: {conf:.0%}\n"
                 f"_Reply `fix: people|projects|ideas|admin` if wrong_"
             )
-            processed_count += 1
         else:
             # Low confidence - log but don't file
             log_to_inbox_log(text, "NEEDS REVIEW", "—", conf)
@@ -246,15 +248,80 @@ def process_all():
 
         # Mark message as processed (prevents duplicate processing)
         mark_message_processed(ts)
-        
+
         # Update last processed timestamp
         LAST_TS_FILE.parent.mkdir(parents=True, exist_ok=True)
         LAST_TS_FILE.write_text(ts)
-    
-    # Periodically clean up old processed message entries
-    cleanup_old_processed_messages()
 
-    print(f"Processed {processed_count} messages")
+        return True
+
+    except Exception as e:
+        # Log to dead letter queue
+        import traceback
+        error_details = traceback.format_exc()
+        log_to_dead_letter(ts, text, error_details, error_type="processing")
+        print(f"Error processing message {ts}: {e}")
+        return False
+
+
+def process_all():
+    """Main processing loop with error handling."""
+    try:
+        messages = fetch_new_messages()
+
+        if not messages:
+            print("No new messages to process")
+            record_successful_run()
+            return
+
+        processed_count = 0
+        failed_count = 0
+
+        for msg in reversed(messages):  # Process oldest first
+            if process_message(msg):
+                processed_count += 1
+            else:
+                failed_count += 1
+
+        # Periodically clean up old processed message entries
+        cleanup_old_processed_messages()
+
+        # Record run status
+        if failed_count == 0:
+            record_successful_run()
+        else:
+            record_failed_run(f"{failed_count} messages failed processing")
+
+        # Alert if too many failures today
+        total_failures_today = get_failed_count_today()
+        if total_failures_today >= FAILURE_ALERT_THRESHOLD:
+            try:
+                send_dm(
+                    f"⚠️ *Second Brain Alert*\n\n"
+                    f"{total_failures_today} messages failed processing today.\n"
+                    f"Check `_inbox_log/FAILED-{datetime.now().strftime('%Y-%m-%d')}.md` for details."
+                )
+            except Exception as alert_error:
+                print(f"Failed to send alert: {alert_error}")
+
+        print(f"Processed {processed_count} messages, {failed_count} failures")
+
+    except Exception as e:
+        # Catastrophic failure - record and alert
+        import traceback
+        error_details = traceback.format_exc()
+        record_failed_run(str(e))
+        print(f"Catastrophic error in process_all: {e}")
+
+        try:
+            send_dm(
+                f"🚨 *Second Brain Critical Error*\n\n"
+                f"Processing failed completely:\n```{str(e)[:500]}```"
+            )
+        except Exception:
+            pass  # Can't even send alert
+
+        raise
 
 
 if __name__ == "__main__":

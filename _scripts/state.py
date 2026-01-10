@@ -218,3 +218,70 @@ def is_system_healthy(max_age_minutes: int = 60) -> tuple[bool, str]:
 
     except (ValueError, TypeError) as e:
         return False, f"Invalid last_success timestamp: {e}"
+
+
+# --- Dead Letter Queue ---
+
+VAULT_PATH = Path.home() / "SecondBrain"
+
+
+def log_to_dead_letter(
+    message_ts: str,
+    message_text: str,
+    error: str,
+    error_type: str = "processing"
+):
+    """
+    Log a failed message to the dead letter queue.
+
+    Creates/appends to _inbox_log/FAILED-{date}.md
+
+    Args:
+        message_ts: Slack message timestamp
+        message_text: Original message text
+        error: Error message/traceback
+        error_type: Type of error (processing, classification, network, etc.)
+    """
+    today = datetime.now().strftime("%Y-%m-%d")
+    failed_log = VAULT_PATH / "_inbox_log" / f"FAILED-{today}.md"
+    failed_log.parent.mkdir(parents=True, exist_ok=True)
+
+    if not failed_log.exists():
+        failed_log.write_text(
+            f"# Failed Messages - {today}\n\n"
+            "Messages that failed processing and need manual review.\n\n"
+            "---\n\n"
+        )
+
+    time_now = datetime.now().strftime("%H:%M:%S")
+    entry = f"""## {time_now} - {error_type.upper()}
+
+**Message TS:** `{message_ts}`
+
+**Original:**
+> {message_text[:200]}{"..." if len(message_text) > 200 else ""}
+
+**Error:**
+```
+{error}
+```
+
+---
+
+"""
+
+    with open(failed_log, "a") as f:
+        f.write(entry)
+
+
+def get_failed_count_today() -> int:
+    """Get the count of failed messages today."""
+    today = datetime.now().strftime("%Y-%m-%d")
+    failed_log = VAULT_PATH / "_inbox_log" / f"FAILED-{today}.md"
+
+    if not failed_log.exists():
+        return 0
+
+    content = failed_log.read_text()
+    # Count error entries by counting "## " headers (excluding the title)
+    return content.count("\n## ") - content.count("# Failed")
