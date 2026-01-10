@@ -7,7 +7,7 @@ A personal knowledge capture system that automatically classifies thoughts from 
 ```
 ┌─────────────┐     ┌──────────────┐     ┌─────────────┐
 │   Slack     │────▶│  Processing  │────▶│  Obsidian   │
-│  #sb-inbox  │     │   Scripts    │     │   Vault     │
+│  #wry_sb  │     │   Scripts    │     │   Vault     │
 └─────────────┘     └──────────────┘     └─────────────┘
       │                    │                    │
       │                    ▼                    │
@@ -20,7 +20,7 @@ A personal knowledge capture system that automatically classifies thoughts from 
              Slack replies with confirmation
 ```
 
-1. Post thoughts to `#sb-inbox` Slack channel
+1. Post thoughts to `#wry_sb` Slack channel
 2. Scripts poll for new messages every 2 minutes
 3. Claude classifies each thought (people/projects/ideas/admin)
 4. Markdown file created in Obsidian with frontmatter
@@ -95,13 +95,13 @@ chmod +x setup.sh
    - `im:write`
 5. Click "Install to Workspace"
 6. Copy the **Bot User OAuth Token** (starts with `xoxb-`)
-7. Create a channel called `#sb-inbox`
+7. Create a channel called `#wry_sb`
 8. Invite your bot to the channel: `/invite @SecondBrain`
 
 ### Finding Your IDs
 
 **Channel ID:**
-- Right-click `#sb-inbox` → "View channel details"
+- Right-click `#wry_sb` → "View channel details"
 - Scroll to bottom, copy the ID (starts with `C`)
 
 **User ID:**
@@ -124,7 +124,7 @@ Add these to your crontab (`crontab -e`):
 
 ```cron
 # Process inbox every 2 minutes
-*/2 * * * * cd ~/SecondBrain/_scripts && source .env && python3 process_inbox.py >> /tmp/sb-inbox.log 2>&1
+*/2 * * * * cd ~/SecondBrain/_scripts && source .env && python3 process_inbox.py >> /tmp/wry_sb.log 2>&1
 
 # Health check every hour
 0 * * * * cd ~/SecondBrain/_scripts && source .env && python3 health_check.py --quiet >> /tmp/sb-health.log 2>&1
@@ -137,7 +137,7 @@ Add these to your crontab (`crontab -e`):
 
 ### Capturing Thoughts
 
-Post to `#sb-inbox`:
+Post to `#wry_sb`:
 ```
 Had a great call with Sarah about the Q2 roadmap.
 She mentioned we should prioritize the mobile app.
@@ -231,7 +231,7 @@ The dashboard (`dashboard.md`) shows:
 ### Check Logs
 ```bash
 # Recent processing
-tail -50 /tmp/sb-inbox.log
+tail -50 /tmp/wry_sb.log
 
 # Health check output
 tail -20 /tmp/sb-health.log
