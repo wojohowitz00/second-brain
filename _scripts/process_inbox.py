@@ -6,83 +6,20 @@ Run via Claude Code or cron.
 
 import os
 import json
-import requests
 from datetime import datetime
 from pathlib import Path
 
+# Use shared Slack client with retry logic
+from slack_client import fetch_messages, reply_to_message, send_dm
+
 VAULT_PATH = Path.home() / "SecondBrain"
-SLACK_TOKEN = os.environ.get("SLACK_BOT_TOKEN")
-CHANNEL_ID = os.environ.get("SLACK_CHANNEL_ID")
 LAST_TS_FILE = VAULT_PATH / "_scripts/.last_processed_ts"
 
-# --- Slack Functions ---
 
 def fetch_new_messages():
     """Get messages since last processed timestamp."""
-    if not SLACK_TOKEN or not CHANNEL_ID:
-        raise ValueError("SLACK_BOT_TOKEN and SLACK_CHANNEL_ID must be set")
-    
     last_ts = LAST_TS_FILE.read_text().strip() if LAST_TS_FILE.exists() else "0"
-    
-    resp = requests.get(
-        "https://slack.com/api/conversations.history",
-        headers={"Authorization": f"Bearer {SLACK_TOKEN}"},
-        params={"channel": CHANNEL_ID, "oldest": last_ts, "limit": 100}
-    )
-    resp.raise_for_status()
-    data = resp.json()
-    
-    if not data.get("ok"):
-        raise ValueError(f"Slack API error: {data.get('error')}")
-    
-    messages = data.get("messages", [])
-    
-    # Filter out bot messages and system messages
-    return [m for m in messages if m.get("type") == "message" and "bot_id" not in m]
-
-
-def reply_to_message(thread_ts, text):
-    """Post confirmation in thread."""
-    resp = requests.post(
-        "https://slack.com/api/chat.postMessage",
-        headers={"Authorization": f"Bearer {SLACK_TOKEN}"},
-        json={
-            "channel": CHANNEL_ID,
-            "thread_ts": thread_ts,
-            "text": text
-        }
-    )
-    resp.raise_for_status()
-    return resp.json()
-
-
-def send_dm(text):
-    """Send digest to user DM."""
-    user_id = os.environ.get("SLACK_USER_ID")
-    if not user_id:
-        raise ValueError("SLACK_USER_ID must be set")
-    
-    # Open DM channel first
-    resp = requests.post(
-        "https://slack.com/api/conversations.open",
-        headers={"Authorization": f"Bearer {SLACK_TOKEN}"},
-        json={"users": user_id}
-    )
-    resp.raise_for_status()
-    data = resp.json()
-    
-    if not data.get("ok"):
-        raise ValueError(f"Failed to open DM: {data.get('error')}")
-    
-    dm_channel = data["channel"]["id"]
-    
-    resp = requests.post(
-        "https://slack.com/api/chat.postMessage",
-        headers={"Authorization": f"Bearer {SLACK_TOKEN}"},
-        json={"channel": dm_channel, "text": text}
-    )
-    resp.raise_for_status()
-    return resp.json()
+    return fetch_messages(oldest=last_ts)
 
 
 # --- Classification (called by Claude Code) ---

@@ -1,32 +1,19 @@
 #!/usr/bin/env python3
 """Handle fix: commands in Slack thread replies."""
 
-import os
 import re
-import requests
 from datetime import datetime
 from pathlib import Path
 import yaml
 
+# Use shared Slack client with retry logic
+from slack_client import (
+    fetch_messages,
+    fetch_thread_replies,
+    reply_to_message,
+)
+
 VAULT_PATH = Path.home() / "SecondBrain"
-SLACK_TOKEN = os.environ.get("SLACK_BOT_TOKEN")
-CHANNEL_ID = os.environ.get("SLACK_CHANNEL_ID")
-
-
-def fetch_thread_replies(thread_ts):
-    """Fetch all replies in a thread."""
-    resp = requests.get(
-        "https://slack.com/api/conversations.replies",
-        headers={"Authorization": f"Bearer {SLACK_TOKEN}"},
-        params={"channel": CHANNEL_ID, "ts": thread_ts}
-    )
-    resp.raise_for_status()
-    data = resp.json()
-    
-    if not data.get("ok"):
-        return []
-    
-    return data.get("messages", [])
 
 
 def find_original_message_file(original_ts):
@@ -114,37 +101,9 @@ def move_file(filepath, new_destination):
     return True
 
 
-def reply_to_message(thread_ts, text):
-    """Post confirmation in thread."""
-    resp = requests.post(
-        "https://slack.com/api/chat.postMessage",
-        headers={"Authorization": f"Bearer {SLACK_TOKEN}"},
-        json={
-            "channel": CHANNEL_ID,
-            "thread_ts": thread_ts,
-            "text": text
-        }
-    )
-    resp.raise_for_status()
-    return resp.json()
-
-
 def process_fix_commands():
     """Check for fix: commands in all recent threads."""
-    # Fetch recent messages
-    resp = requests.get(
-        "https://slack.com/api/conversations.history",
-        headers={"Authorization": f"Bearer {SLACK_TOKEN}"},
-        params={"channel": CHANNEL_ID, "limit": 50}
-    )
-    resp.raise_for_status()
-    data = resp.json()
-    
-    if not data.get("ok"):
-        print(f"Error fetching messages: {data.get('error')}")
-        return
-    
-    messages = data.get("messages", [])
+    messages = fetch_messages(limit=50)
     processed = 0
     
     for msg in messages:

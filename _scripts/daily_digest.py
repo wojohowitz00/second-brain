@@ -4,40 +4,11 @@
 from pathlib import Path
 from datetime import datetime, timedelta
 import yaml
-import os
-import requests
+
+# Use shared Slack client with retry logic
+from slack_client import send_dm
 
 VAULT_PATH = Path.home() / "SecondBrain"
-SLACK_TOKEN = os.environ.get("SLACK_BOT_TOKEN")
-SLACK_USER_ID = os.environ.get("SLACK_USER_ID")
-
-
-def send_dm(text):
-    """Send digest to user DM."""
-    if not SLACK_TOKEN or not SLACK_USER_ID:
-        raise ValueError("SLACK_BOT_TOKEN and SLACK_USER_ID must be set")
-    
-    # Open DM channel first
-    resp = requests.post(
-        "https://slack.com/api/conversations.open",
-        headers={"Authorization": f"Bearer {SLACK_TOKEN}"},
-        json={"users": SLACK_USER_ID}
-    )
-    resp.raise_for_status()
-    data = resp.json()
-    
-    if not data.get("ok"):
-        raise ValueError(f"Failed to open DM: {data.get('error')}")
-    
-    dm_channel = data["channel"]["id"]
-    
-    resp = requests.post(
-        "https://slack.com/api/chat.postMessage",
-        headers={"Authorization": f"Bearer {SLACK_TOKEN}"},
-        json={"channel": dm_channel, "text": text}
-    )
-    resp.raise_for_status()
-    return resp.json()
 
 
 def gather_active_items():
