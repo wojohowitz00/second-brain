@@ -18,6 +18,36 @@ class ValidationError(Exception):
     pass
 
 
+def validate_linked_entity(entity: dict) -> dict:
+    """
+    Validate a single linked entity.
+
+    Args:
+        entity: Dict with "name" and "type" keys
+
+    Returns:
+        Validated entity dict, or None if invalid
+    """
+    if not isinstance(entity, dict):
+        return None
+
+    name = entity.get("name", "").strip()
+    entity_type = entity.get("type", "").lower()
+
+    if not name:
+        return None
+
+    # Normalize entity type
+    if entity_type in ("person", "people"):
+        entity_type = "people"
+    elif entity_type in ("project", "projects"):
+        entity_type = "projects"
+    else:
+        return None  # Unknown type
+
+    return {"name": name, "type": entity_type}
+
+
 def validate_classification(data: dict) -> dict:
     """
     Validate a classification response from Claude.
@@ -65,11 +95,25 @@ def validate_classification(data: dict) -> dict:
     if not isinstance(extracted, dict):
         extracted = {}
 
+    # Linked entities: optional list of {name, type} dicts
+    linked_entities = data.get("linked_entities", [])
+    if not isinstance(linked_entities, list):
+        linked_entities = []
+    else:
+        # Validate each entity, filtering out invalid ones
+        validated_entities = []
+        for entity in linked_entities:
+            validated = validate_linked_entity(entity)
+            if validated:
+                validated_entities.append(validated)
+        linked_entities = validated_entities
+
     return {
         "destination": destination,
         "confidence": confidence,
         "filename": filename,
-        "extracted": extracted
+        "extracted": extracted,
+        "linked_entities": linked_entities
     }
 
 
@@ -134,7 +178,8 @@ def create_fallback_classification(
             "title": thought[:50] + ("..." if len(thought) > 50 else ""),
             "oneliner": "Auto-classified due to validation error",
             "_validation_error": error
-        }
+        },
+        "linked_entities": []  # No entities in fallback
     }
 
 
