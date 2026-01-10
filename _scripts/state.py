@@ -1,0 +1,220 @@
+#!/usr/bin/env python3
+"""
+State management for Second Brain processing.
+
+Handles:
+- Message-to-file mapping (which Slack message created which file)
+- Processed message tracking (idempotency)
+- Last successful run tracking (health checks)
+"""
+
+import json
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Optional
+import fcntl
+
+# State files location
+SCRIPTS_DIR = Path(__file__).parent
+STATE_DIR = SCRIPTS_DIR / ".state"
+
+
+def _ensure_state_dir():
+    """Ensure state directory exists."""
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _atomic_json_read(filepath: Path) -> dict:
+    """Read JSON file with locking."""
+    if not filepath.exists():
+        return {}
+
+    with open(filepath, "r") as f:
+        fcntl.flock(f.fileno(), fcntl.LOCK_SH)
+        try:
+            return json.load(f)
+        except json.JSONDecodeError:
+            return {}
+        finally:
+            fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+
+
+def _atomic_json_write(filepath: Path, data: dict):
+    """Write JSON file with locking."""
+    _ensure_state_dir()
+
+    # Write to temp file first, then rename (atomic on POSIX)
+    temp_path = filepath.with_suffix(".tmp")
+    with open(temp_path, "w") as f:
+        fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+        try:
+            json.dump(data, f, indent=2, default=str)
+        finally:
+            fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+
+    temp_path.rename(filepath)
+
+
+# --- Message-to-File Mapping ---
+
+MESSAGE_MAPPING_FILE = STATE_DIR / "message_mapping.json"
+
+
+def get_file_for_message(message_ts: str) -> Optional[Path]:
+    """
+    Get the file path for a given message timestamp.
+
+    Returns None if message hasn't been processed.
+    """
+    mapping = _atomic_json_read(MESSAGE_MAPPING_FILE)
+    filepath_str = mapping.get(message_ts)
+
+    if filepath_str:
+        filepath = Path(filepath_str)
+        if filepath.exists():
+            return filepath
+
+    return None
+
+
+def set_file_for_message(message_ts: str, filepath: Path):
+    """
+    Record which file was created from a message.
+    """
+    mapping = _atomic_json_read(MESSAGE_MAPPING_FILE)
+    mapping[message_ts] = str(filepath)
+    _atomic_json_write(MESSAGE_MAPPING_FILE, mapping)
+
+
+def remove_message_mapping(message_ts: str):
+    """
+    Remove a message from the mapping (e.g., after file deletion).
+    """
+    mapping = _atomic_json_read(MESSAGE_MAPPING_FILE)
+    if message_ts in mapping:
+        del mapping[message_ts]
+        _atomic_json_write(MESSAGE_MAPPING_FILE, mapping)
+
+
+def update_file_location(message_ts: str, new_filepath: Path):
+    """
+    Update the file location for a message (e.g., after move).
+    """
+    set_file_for_message(message_ts, new_filepath)
+
+
+# --- Processed Messages (Idempotency) ---
+
+PROCESSED_MESSAGES_FILE = STATE_DIR / "processed_messages.json"
+PROCESSED_MESSAGE_TTL_DAYS = 30
+
+
+def is_message_processed(message_ts: str) -> bool:
+    """
+    Check if a message has already been processed.
+    """
+    processed = _atomic_json_read(PROCESSED_MESSAGES_FILE)
+    return message_ts in processed
+
+
+def mark_message_processed(message_ts: str):
+    """
+    Mark a message as processed.
+    """
+    processed = _atomic_json_read(PROCESSED_MESSAGES_FILE)
+    processed[message_ts] = datetime.now().isoformat()
+    _atomic_json_write(PROCESSED_MESSAGES_FILE, processed)
+
+
+def cleanup_old_processed_messages():
+    """
+    Remove entries older than TTL to prevent unbounded growth.
+    Call periodically (e.g., daily).
+    """
+    processed = _atomic_json_read(PROCESSED_MESSAGES_FILE)
+    cutoff = datetime.now() - timedelta(days=PROCESSED_MESSAGE_TTL_DAYS)
+
+    cleaned = {}
+    for ts, processed_at_str in processed.items():
+        try:
+            processed_at = datetime.fromisoformat(processed_at_str)
+            if processed_at > cutoff:
+                cleaned[ts] = processed_at_str
+        except (ValueError, TypeError):
+            # Keep entries with invalid dates (shouldn't happen)
+            cleaned[ts] = processed_at_str
+
+    if len(cleaned) != len(processed):
+        _atomic_json_write(PROCESSED_MESSAGES_FILE, cleaned)
+
+
+# --- Last Run Tracking (Health Checks) ---
+
+LAST_RUN_FILE = STATE_DIR / "last_run.json"
+
+
+def record_successful_run():
+    """
+    Record that a processing run completed successfully.
+    """
+    data = {
+        "last_success": datetime.now().isoformat(),
+        "status": "success"
+    }
+    _atomic_json_write(LAST_RUN_FILE, data)
+
+
+def record_failed_run(error: str):
+    """
+    Record that a processing run failed.
+    """
+    existing = _atomic_json_read(LAST_RUN_FILE)
+    data = {
+        "last_success": existing.get("last_success"),
+        "last_failure": datetime.now().isoformat(),
+        "last_error": error,
+        "status": "failed"
+    }
+    _atomic_json_write(LAST_RUN_FILE, data)
+
+
+def get_last_run_status() -> dict:
+    """
+    Get the last run status.
+
+    Returns:
+        Dict with keys: last_success, last_failure, last_error, status
+    """
+    return _atomic_json_read(LAST_RUN_FILE)
+
+
+def is_system_healthy(max_age_minutes: int = 60) -> tuple[bool, str]:
+    """
+    Check if the system is healthy.
+
+    Args:
+        max_age_minutes: Maximum age of last successful run
+
+    Returns:
+        Tuple of (is_healthy, message)
+    """
+    status = get_last_run_status()
+
+    if not status:
+        return False, "No runs recorded yet"
+
+    last_success_str = status.get("last_success")
+    if not last_success_str:
+        return False, "No successful runs recorded"
+
+    try:
+        last_success = datetime.fromisoformat(last_success_str)
+        age = datetime.now() - last_success
+
+        if age > timedelta(minutes=max_age_minutes):
+            return False, f"Last success was {age.total_seconds() / 60:.0f} minutes ago"
+
+        return True, f"Healthy - last success {age.total_seconds() / 60:.0f} minutes ago"
+
+    except (ValueError, TypeError) as e:
+        return False, f"Invalid last_success timestamp: {e}"

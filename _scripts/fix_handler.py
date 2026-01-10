@@ -13,67 +13,36 @@ from slack_client import (
     reply_to_message,
 )
 
+# State management for message-to-file mapping
+from state import get_file_for_message, update_file_location
+
 VAULT_PATH = Path.home() / "SecondBrain"
 
 
-def find_original_message_file(original_ts):
-    """Find the file created from a message timestamp."""
-    # Search inbox logs for this timestamp
-    log_dir = VAULT_PATH / "_inbox_log"
-    if not log_dir.exists():
-        return None
-    
-    # Convert timestamp to datetime
-    try:
-        msg_time = datetime.fromtimestamp(float(original_ts))
-        date_str = msg_time.strftime("%Y-%m-%d")
-        log_file = log_dir / f"{date_str}.md"
-        
-        if not log_file.exists():
-            return None
-        
-        # Read log and find matching entry
-        content = log_file.read_text()
-        for line in content.split("\n"):
-            if original_ts[:10] in line or msg_time.strftime("%H:%M") in line:
-                # Extract filename from log entry
-                parts = [p.strip() for p in line.split("|")]
-                if len(parts) >= 5:
-                    filename = parts[4].strip()
-                    if filename and filename != "—":
-                        # Search all folders for this file
-                        for folder in ["people", "projects", "ideas", "admin"]:
-                            folder_path = VAULT_PATH / folder
-                            if folder_path.exists():
-                                filepath = folder_path / filename
-                                if filepath.exists():
-                                    return filepath
-        
-        return None
-    except Exception as e:
-        print(f"Error finding file for {original_ts}: {e}")
-        return None
-
-
 def move_file(filepath, new_destination):
-    """Move file to new destination folder."""
+    """
+    Move file to new destination folder.
+
+    Returns:
+        New filepath if successful, None otherwise.
+    """
     if not filepath.exists():
-        return False
-    
+        return None
+
     new_folder = VAULT_PATH / new_destination
     new_folder.mkdir(parents=True, exist_ok=True)
-    
+
     new_filepath = new_folder / filepath.name
-    
+
     # Handle conflicts
     if new_filepath.exists():
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
         stem = filepath.stem
         new_filepath = new_folder / f"{stem}-moved-{timestamp}.md"
-    
+
     filepath.rename(new_filepath)
-    
-    # Update frontmatter destination if needed
+
+    # Update frontmatter to record the move
     try:
         content = new_filepath.read_text()
         if "---" in content:
@@ -81,9 +50,10 @@ def move_file(filepath, new_destination):
             if len(parts) >= 2:
                 fm = yaml.safe_load(parts[1])
                 if fm:
-                    fm["moved_to"] = new_destination
+                    fm["type"] = _get_type_for_destination(new_destination)
+                    fm["moved_from"] = filepath.parent.name
                     fm["moved_at"] = datetime.now().isoformat()
-                    
+
                     # Rewrite with updated frontmatter
                     new_content = "---\n"
                     for k, v in fm.items():
@@ -97,21 +67,33 @@ def move_file(filepath, new_destination):
                     new_filepath.write_text(new_content)
     except Exception as e:
         print(f"Error updating frontmatter: {e}")
-    
-    return True
+
+    return new_filepath
+
+
+def _get_type_for_destination(destination: str) -> str:
+    """Get the frontmatter type for a destination folder."""
+    type_map = {
+        "people": "person",
+        "projects": "project",
+        "ideas": "idea",
+        "admin": "admin"
+    }
+    return type_map.get(destination, destination)
 
 
 def process_fix_commands():
     """Check for fix: commands in all recent threads."""
     messages = fetch_messages(limit=50)
     processed = 0
-    
+
     for msg in messages:
         # Check if message has thread replies
         if msg.get("thread_ts") or msg.get("reply_count", 0) > 0:
             thread_ts = msg.get("thread_ts") or msg.get("ts")
+            original_ts = msg.get("ts")
             replies = fetch_thread_replies(thread_ts)
-            
+
             for reply in replies:
                 text = reply.get("text", "").strip()
                 if text.lower().startswith("fix:"):
@@ -120,29 +102,32 @@ def process_fix_commands():
                     if match:
                         new_dest = match.group(1)
                         if new_dest in ["people", "projects", "ideas", "admin"]:
-                            # Find original file
-                            original_ts = msg.get("ts")
-                            filepath = find_original_message_file(original_ts)
-                            
+                            # Find original file using message mapping
+                            filepath = get_file_for_message(original_ts)
+
                             if filepath:
                                 # Move file
-                                if move_file(filepath, new_dest):
+                                new_filepath = move_file(filepath, new_dest)
+                                if new_filepath:
+                                    # Update the message mapping with new location
+                                    update_file_location(original_ts, new_filepath)
+
                                     reply_to_message(
                                         thread_ts,
-                                        f"✓ Moved to *{new_dest}* as `{filepath.name}`"
+                                        f"✓ Moved to *{new_dest}* as `{new_filepath.name}`"
                                     )
                                     processed += 1
                                 else:
                                     reply_to_message(
                                         thread_ts,
-                                        f"⚠️ Failed to move file"
+                                        "⚠️ Failed to move file"
                                     )
                             else:
                                 reply_to_message(
                                     thread_ts,
-                                    f"⚠️ Could not find original file"
+                                    "⚠️ Could not find original file (message not in mapping)"
                                 )
-    
+
     print(f"Processed {processed} fix commands")
 
 

@@ -12,6 +12,9 @@ from pathlib import Path
 # Use shared Slack client with retry logic
 from slack_client import fetch_messages, reply_to_message, send_dm
 
+# State management for message tracking
+from state import set_file_for_message
+
 VAULT_PATH = Path.home() / "SecondBrain"
 LAST_TS_FILE = VAULT_PATH / "_scripts/.last_processed_ts"
 
@@ -170,31 +173,6 @@ def log_to_inbox_log(original: str, destination: str, filename: str, confidence:
         )
 
 
-# --- Fix Handler ---
-
-def handle_fix_command(message_text: str, original_ts: str):
-    """Handle fix: commands in thread replies."""
-    if not message_text.lower().startswith("fix:"):
-        return False
-    
-    dest = message_text.split(":", 1)[1].strip().lower()
-    if dest not in ["people", "projects", "ideas", "admin"]:
-        return False
-    
-    # Find the original message's file in inbox log
-    # This is simplified - in practice you'd track message TS -> file mappings
-    # For now, we'll need to search recent logs
-    today = datetime.now().strftime("%Y-%m-%d")
-    log_file = VAULT_PATH / "_inbox_log" / f"{today}.md"
-    
-    if not log_file.exists():
-        return False
-    
-    # In a full implementation, you'd maintain a mapping of ts -> filepath
-    # For now, this is a placeholder
-    return True
-
-
 # --- Main Loop ---
 
 def process_all():
@@ -211,12 +189,11 @@ def process_all():
         text = msg["text"]
         ts = msg["ts"]
         timestamp = datetime.fromtimestamp(float(ts)).isoformat()
-        
-        # Check for fix commands in thread (handled separately)
+
+        # Skip fix: commands - handled by fix_handler.py
         if text.lower().startswith("fix:"):
-            handle_fix_command(text, ts)
             continue
-        
+
         # Classify
         classification = classify_thought(text)
         conf = classification["confidence"]
@@ -226,7 +203,10 @@ def process_all():
             # File it
             filepath = write_to_obsidian(classification, text, timestamp)
             log_to_inbox_log(text, dest, filepath.name, conf)
-            
+
+            # Record message-to-file mapping for fix commands
+            set_file_for_message(ts, filepath)
+
             reply_to_message(
                 ts,
                 f"✓ Filed to *{dest}* as `{filepath.name}`\n"
