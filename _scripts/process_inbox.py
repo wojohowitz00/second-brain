@@ -20,6 +20,9 @@ from state import (
     cleanup_old_processed_messages,
 )
 
+# Schema validation for classification responses
+from schema import validate_classification, create_fallback_classification, ValidationError
+
 VAULT_PATH = Path.home() / "SecondBrain"
 LAST_TS_FILE = VAULT_PATH / "_scripts/.last_processed_ts"
 
@@ -203,8 +206,15 @@ def process_all():
         if is_message_processed(ts):
             continue
 
-        # Classify
-        classification = classify_thought(text)
+        # Classify and validate
+        try:
+            raw_classification = classify_thought(text)
+            classification = validate_classification(raw_classification)
+        except ValidationError as e:
+            # Fallback to ideas with low confidence if validation fails
+            print(f"Validation error for message {ts}: {e}")
+            classification = create_fallback_classification(text, error=str(e))
+
         conf = classification["confidence"]
         dest = classification["destination"]
         
