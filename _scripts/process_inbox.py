@@ -13,7 +13,12 @@ from pathlib import Path
 from slack_client import fetch_messages, reply_to_message, send_dm
 
 # State management for message tracking
-from state import set_file_for_message
+from state import (
+    set_file_for_message,
+    is_message_processed,
+    mark_message_processed,
+    cleanup_old_processed_messages,
+)
 
 VAULT_PATH = Path.home() / "SecondBrain"
 LAST_TS_FILE = VAULT_PATH / "_scripts/.last_processed_ts"
@@ -194,6 +199,10 @@ def process_all():
         if text.lower().startswith("fix:"):
             continue
 
+        # Idempotency check - skip already processed messages
+        if is_message_processed(ts):
+            continue
+
         # Classify
         classification = classify_thought(text)
         conf = classification["confidence"]
@@ -217,18 +226,24 @@ def process_all():
         else:
             # Low confidence - log but don't file
             log_to_inbox_log(text, "NEEDS REVIEW", "—", conf)
-            
+
             reply_to_message(
                 ts,
                 f"⚠️ Not sure where this goes (confidence: {conf:.0%})\n"
                 f"Please repost with a prefix like:\n"
                 f"• `person: ...`\n• `project: ...`\n• `idea: ...`\n• `admin: ...`"
             )
+
+        # Mark message as processed (prevents duplicate processing)
+        mark_message_processed(ts)
         
         # Update last processed timestamp
         LAST_TS_FILE.parent.mkdir(parents=True, exist_ok=True)
         LAST_TS_FILE.write_text(ts)
     
+    # Periodically clean up old processed message entries
+    cleanup_old_processed_messages()
+
     print(f"Processed {processed_count} messages")
 
 
