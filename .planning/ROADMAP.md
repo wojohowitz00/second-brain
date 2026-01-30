@@ -33,10 +33,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Backend can create .md files with frontmatter in test vault
   3. Backend can process fix: corrections
   4. State tracking correctly prevents duplicate processing
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 01-01: [TBD during planning]
+- [ ] 01-01-PLAN.md - Unit tests for schema validation and state management
+- [ ] 01-02-PLAN.md - Integration tests for Slack, file creation, and fix handling
 
 ### Phase 2: Vault Scanner
 **Goal**: App dynamically discovers vault structure for classification vocabulary
@@ -165,7 +166,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation Validation | 0/TBD | Not started | - |
+| 1. Foundation Validation | 0/2 | Ready | - |
 | 2. Vault Scanner | 0/TBD | Not started | - |
 | 3. Ollama Connection | 0/TBD | Not started | - |
 | 4. Basic Classification | 0/TBD | Not started | - |
