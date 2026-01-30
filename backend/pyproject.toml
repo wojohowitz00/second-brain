@@ -20,3 +20,8 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["_scripts"]
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: marks tests as integration tests requiring real external APIs (deselect with '-m \"not integration\"')",
+]
