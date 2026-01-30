@@ -101,35 +101,35 @@ These capabilities exist in the current codebase:
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| VAULT-01 | — | Pending |
-| VAULT-02 | — | Pending |
-| VAULT-03 | — | Pending |
-| VAULT-04 | — | Pending |
-| VAULT-05 | — | Pending |
-| CLASS-01 | — | Pending |
-| CLASS-02 | — | Pending |
-| CLASS-03 | — | Pending |
-| CLASS-04 | — | Pending |
-| CLASS-05 | — | Pending |
-| CLASS-06 | — | Pending |
-| PROC-01 | — | Pending |
-| PROC-02 | — | Pending |
-| PROC-03 | — | Pending |
-| PROC-04 | — | Pending |
-| UI-01 | — | Pending |
-| UI-02 | — | Pending |
-| UI-03 | — | Pending |
-| UI-04 | — | Pending |
-| UI-05 | — | Pending |
-| SETUP-01 | — | Pending |
-| SETUP-02 | — | Pending |
-| SETUP-03 | — | Pending |
-| SETUP-04 | — | Pending |
-| SETUP-05 | — | Pending |
-| SETUP-06 | — | Pending |
-| DIST-01 | — | Pending |
-| DIST-02 | — | Pending |
-| DIST-03 | — | Pending |
+| VAULT-01 | Phase 2 | Pending |
+| VAULT-02 | Phase 2 | Pending |
+| VAULT-03 | Phase 2 | Pending |
+| VAULT-04 | Phase 2 | Pending |
+| VAULT-05 | Phase 2 | Pending |
+| CLASS-01 | Phase 4 | Pending |
+| CLASS-02 | Phase 5 | Pending |
+| CLASS-03 | Phase 5 | Pending |
+| CLASS-04 | Phase 5 | Pending |
+| CLASS-05 | Phase 3 | Pending |
+| CLASS-06 | Phase 5 | Pending |
+| PROC-01 | Phase 6 | Pending |
+| PROC-02 | Phase 6 | Pending |
+| PROC-03 | Phase 6 | Pending |
+| PROC-04 | Phase 6 | Pending |
+| UI-01 | Phase 7 | Pending |
+| UI-02 | Phase 7 | Pending |
+| UI-03 | Phase 7 | Pending |
+| UI-04 | Phase 7 | Pending |
+| UI-05 | Phase 7 | Pending |
+| SETUP-01 | Phase 8 | Pending |
+| SETUP-02 | Phase 8 | Pending |
+| SETUP-03 | Phase 8 | Pending |
+| SETUP-04 | Phase 8 | Pending |
+| SETUP-05 | Phase 8 | Pending |
+| SETUP-06 | Phase 8 | Pending |
+| DIST-01 | Phase 9 | Pending |
+| DIST-02 | Phase 9 | Pending |
+| DIST-03 | Phase 9 | Pending |
 
 ---
 
