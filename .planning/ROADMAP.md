@@ -12,7 +12,7 @@ Transform existing Slack-to-Obsidian backend into a standalone macOS app with lo
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation Validation** - Verify existing backend still works
+- [x] **Phase 1: Foundation Validation** - Verify existing backend still works ✓
 - [ ] **Phase 2: Vault Scanner** - Dynamic domain/PARA/subject discovery
 - [ ] **Phase 3: Ollama Connection** - Local LLM integration and health checks
 - [ ] **Phase 4: Basic Classification** - Single-level domain classification proof
@@ -36,8 +36,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md - Unit tests for schema validation and state management
-- [ ] 01-02-PLAN.md - Integration tests for Slack, file creation, and fix handling
+- [x] 01-01-PLAN.md - Unit tests for schema validation and state management ✓
+- [x] 01-02-PLAN.md - Integration tests for Slack, file creation, and fix handling ✓
 
 ### Phase 2: Vault Scanner
 **Goal**: App dynamically discovers vault structure for classification vocabulary
@@ -166,7 +166,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation Validation | 0/2 | Ready | - |
+| 1. Foundation Validation | 2/2 | Complete ✓ | 2026-01-31 |
 | 2. Vault Scanner | 0/TBD | Not started | - |
 | 3. Ollama Connection | 0/TBD | Not started | - |
 | 4. Basic Classification | 0/TBD | Not started | - |
