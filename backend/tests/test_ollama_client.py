@@ -273,4 +273,4 @@ class TestOllamaIntegration:
             assert "message" in response
             assert "content" in response["message"]
         except OllamaModelNotFound:
-            pytest.skip("Model not available - run: ollama pull llama3.2:3b")
+            pytest.skip("Model not available - run: ollama pull llama3.2:latest")

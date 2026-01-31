@@ -16,7 +16,7 @@ import httpx
 
 # Configuration
 DEFAULT_HOST = "http://localhost:11434"
-DEFAULT_MODEL = "llama3.2:3b"
+DEFAULT_MODEL = "llama3.2:latest"
 DEFAULT_TIMEOUT = 30.0  # Cold start can take 20s+
 HEALTH_CHECK_TIMEOUT = 5.0  # Quick health checks
 

@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2.5: Task Management** - Kanban/Todo via Slack with status transitions ✓
 - [x] **Phase 3: Ollama Connection** - Local LLM integration and health checks ✓
 - [ ] **Phase 4: Basic Classification** - Single-level domain classification proof
-- [ ] **Phase 5: Multi-Level Classification** - Complete PARA/subject/category pipeline
+- [x] **Phase 5: Multi-Level Classification** - Complete PARA/subject/category pipeline ✓
 - [ ] **Phase 6: Processing Integration** - Wire classification to message processor
 - [ ] **Phase 7: Menu Bar Interface** - macOS UI layer with status display
 - [ ] **Phase 8: First-Run Wizard** - Setup UX for Ollama and vault
@@ -81,25 +81,26 @@ Plans:
   2. Classification uses vault vocabulary from scanner
   3. Invalid/unexpected responses are caught and logged
   4. Classification completes within 30 seconds (cold start) or 5 seconds (warm)
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 04-01: [TBD during planning]
+- [ ] 04-01-PLAN.md - DomainClassifier with LLM + vocabulary integration (TDD)
 
 ### Phase 5: Multi-Level Classification
 **Goal**: App completes full classification pipeline (domain → PARA → subject → category)
-**Depends on**: Phase 4
-**Requirements**: CLASS-02, CLASS-03, CLASS-04, CLASS-06
+**Depends on**: Phase 3 (Ollama), Phase 2 (VaultScanner)
+**Requirements**: CLASS-01, CLASS-02, CLASS-03, CLASS-04, CLASS-06
 **Success Criteria** (what must be TRUE):
-  1. App classifies PARA type (Projects/Areas/Resources/Archives)
-  2. App classifies subject within PARA folder
-  3. App assigns category tag to message
-  4. Classification uses vault vocabulary from scanner for all levels
-  5. Full pipeline produces valid domain/para/subject/category tuple
-**Plans**: TBD
+  1. App classifies domain (Personal, CCBH, Just Value)
+  2. App classifies PARA type (Projects/Areas/Resources/Archives)
+  3. App classifies subject within PARA folder
+  4. App assigns category tag to message
+  5. Classification uses vault vocabulary from scanner for all levels
+  6. Full pipeline produces valid domain/para/subject/category tuple
+**Plans**: 1 plan
 
 Plans:
-- [ ] 05-01: [TBD during planning]
+- [x] 05-01-PLAN.md - MessageClassifier with single-shot multi-level classification (TDD) ✓
 
 ### Phase 6: Processing Integration
 **Goal**: Classified messages become .md files in correct vault locations
@@ -173,7 +174,7 @@ Phases execute in numeric order: 1 → 2 → 2.5 → 3 → 4 → 5 → 6 → 7 �
 | 2.5. Task Management | 2/2 | Complete ✓ | 2026-01-31 |
 | 3. Ollama Connection | 1/1 | Complete ✓ | 2026-01-31 |
 | 4. Basic Classification | 0/TBD | Not started | - |
-| 5. Multi-Level Classification | 0/TBD | Not started | - |
+| 5. Multi-Level Classification | 1/1 | Complete ✓ | 2026-01-31 |
 | 6. Processing Integration | 0/TBD | Not started | - |
 | 7. Menu Bar Interface | 0/TBD | Not started | - |
 | 8. First-Run Wizard | 0/TBD | Not started | - |
