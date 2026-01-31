@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Vault Scanner** - Dynamic domain/PARA/subject discovery ✓
 - [x] **Phase 2.5: Task Management** - Kanban/Todo via Slack with status transitions ✓
 - [x] **Phase 3: Ollama Connection** - Local LLM integration and health checks ✓
-- [ ] **Phase 4: Basic Classification** - Single-level domain classification proof
+- [x] **Phase 4: Basic Classification** - Single-level domain classification ✓
 - [x] **Phase 5: Multi-Level Classification** - Complete PARA/subject/category pipeline ✓
 - [ ] **Phase 6: Processing Integration** - Wire classification to message processor
 - [ ] **Phase 7: Menu Bar Interface** - macOS UI layer with status display
