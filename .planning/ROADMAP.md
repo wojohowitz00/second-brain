@@ -146,10 +146,10 @@ Plans:
   4. If missing, wizard triggers model download with progress indicator
   5. Wizard allows user to configure vault path (with default)
   6. Wizard validates Slack credentials before completion
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 08-01: [TBD during planning]
+- [ ] 08-01-PLAN.md - SetupWizard with step-based first-run flow (TDD)
 
 ### Phase 9: Packaging
 **Goal**: App is distributed as .pkg installer for non-technical users
