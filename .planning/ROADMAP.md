@@ -49,10 +49,11 @@ Plans:
   3. Scanner discovers subject folders within each PARA section
   4. Scanner caches structure with 6-hour TTL and exposes as vocabulary
   5. User can manually trigger rescan (prep for future menu bar integration)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 02-01: [TBD during planning]
+- [ ] 02-01-PLAN.md - Core vault scanner with three-level traversal (TDD)
+- [ ] 02-02-PLAN.md - Cache layer with TTL and vocabulary extraction (TDD)
 
 ### Phase 3: Ollama Connection
 **Goal**: App can communicate with local Ollama instance
@@ -167,7 +168,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation Validation | 2/2 | Complete ✓ | 2026-01-31 |
-| 2. Vault Scanner | 0/TBD | Not started | - |
+| 2. Vault Scanner | 0/2 | Planned | - |
 | 3. Ollama Connection | 0/TBD | Not started | - |
 | 4. Basic Classification | 0/TBD | Not started | - |
 | 5. Multi-Level Classification | 0/TBD | Not started | - |
