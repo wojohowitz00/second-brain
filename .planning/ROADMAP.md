@@ -112,10 +112,12 @@ Plans:
   3. Created .md files have domain/para/subject/category in frontmatter
   4. Files are placed in correct vault folder path (domain/PARA/subject/)
   5. End-to-end: Slack message → classified → filed in vault within one poll cycle
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 06-01: [TBD during planning]
+- [ ] 06-01-PLAN.md — File writer module with PARA-aware file creation (TDD)
+- [ ] 06-02-PLAN.md — Refactor process_inbox.py to use MessageClassifier
+- [ ] 06-03-PLAN.md — Polling loop with graceful shutdown + integration tests
 
 ### Phase 7: Menu Bar Interface
 **Goal**: User has macOS menu bar presence showing status and controls
@@ -175,7 +177,7 @@ Phases execute in numeric order: 1 → 2 → 2.5 → 3 → 4 → 5 → 6 → 7 �
 | 3. Ollama Connection | 1/1 | Complete ✓ | 2026-01-31 |
 | 4. Basic Classification | 0/TBD | Not started | - |
 | 5. Multi-Level Classification | 1/1 | Complete ✓ | 2026-01-31 |
-| 6. Processing Integration | 0/TBD | Not started | - |
+| 6. Processing Integration | 0/3 | Not started | - |
 | 7. Menu Bar Interface | 0/TBD | Not started | - |
 | 8. First-Run Wizard | 0/TBD | Not started | - |
 | 9. Packaging | 0/TBD | Not started | - |
