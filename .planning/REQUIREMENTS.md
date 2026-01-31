@@ -27,50 +27,50 @@ These capabilities exist in the current codebase:
 
 ### Vault Discovery
 
-- [ ] **VAULT-01**: App scans Obsidian vault to discover domain folders (Personal, CCBH, Just Value)
-- [ ] **VAULT-02**: App scans PARA subfolders within each domain (Projects/Areas/Resources/Archives)
-- [ ] **VAULT-03**: App scans subject subfolders within each PARA section
-- [ ] **VAULT-04**: App caches vault structure with configurable TTL (default 6 hours)
-- [ ] **VAULT-05**: User can manually trigger vault rescan from menu bar
+- [x] **VAULT-01**: App scans Obsidian vault to discover domain folders (Personal, CCBH, Just Value) ✓
+- [x] **VAULT-02**: App scans PARA subfolders within each domain (Projects/Areas/Resources/Archives) ✓
+- [x] **VAULT-03**: App scans subject subfolders within each PARA section ✓
+- [x] **VAULT-04**: App caches vault structure with configurable TTL (default 6 hours) ✓
+- [x] **VAULT-05**: User can manually trigger vault rescan from menu bar ✓
 
 ### Classification
 
-- [ ] **CLASS-01**: App classifies message domain (Personal, CCBH, Just Value)
-- [ ] **CLASS-02**: App classifies PARA type (Projects, Areas, Resources, Archives)
-- [ ] **CLASS-03**: App classifies subject within the PARA folder
-- [ ] **CLASS-04**: App assigns category tag to each note
-- [ ] **CLASS-05**: Classification runs locally via Ollama (no cloud API)
-- [ ] **CLASS-06**: Classification uses vault vocabulary from scanner
+- [x] **CLASS-01**: App classifies message domain (Personal, CCBH, Just Value) ✓
+- [x] **CLASS-02**: App classifies PARA type (Projects, Areas, Resources, Archives) ✓
+- [x] **CLASS-03**: App classifies subject within the PARA folder ✓
+- [x] **CLASS-04**: App assigns category tag to each note ✓
+- [x] **CLASS-05**: Classification runs locally via Ollama (no cloud API) ✓
+- [x] **CLASS-06**: Classification uses vault vocabulary from scanner ✓
 
 ### Processing
 
-- [ ] **PROC-01**: App processes Slack messages on startup (backlog since last run)
-- [ ] **PROC-02**: App polls Slack every 2 minutes while running
-- [ ] **PROC-03**: App creates .md files with domain/para/subject/category frontmatter
-- [ ] **PROC-04**: App places files in correct vault folder path
+- [x] **PROC-01**: App processes Slack messages on startup (backlog since last run) ✓
+- [x] **PROC-02**: App polls Slack every 2 minutes while running ✓
+- [x] **PROC-03**: App creates .md files with domain/para/subject/category frontmatter ✓
+- [x] **PROC-04**: App places files in correct vault folder path ✓
 
 ### User Interface
 
-- [ ] **UI-01**: App displays menu bar icon showing sync status (idle/syncing/error)
-- [ ] **UI-02**: User can trigger manual sync from menu bar
-- [ ] **UI-03**: User can view recent activity from menu bar
-- [ ] **UI-04**: User can quit app from menu bar
-- [ ] **UI-05**: App shows notification when new notes are filed
+- [x] **UI-01**: App displays menu bar icon showing sync status (idle/syncing/error) ✓
+- [x] **UI-02**: User can trigger manual sync from menu bar ✓
+- [x] **UI-03**: User can view recent activity from menu bar ✓
+- [x] **UI-04**: User can quit app from menu bar ✓
+- [x] **UI-05**: App shows notification when new notes are filed ✓
 
 ### Setup
 
-- [ ] **SETUP-01**: First-run wizard checks if Ollama is installed
-- [ ] **SETUP-02**: First-run wizard guides Ollama download if missing
-- [ ] **SETUP-03**: First-run wizard checks if required model is available
-- [ ] **SETUP-04**: First-run wizard triggers model download with progress indicator
-- [ ] **SETUP-05**: First-run wizard allows user to configure vault path
-- [ ] **SETUP-06**: First-run wizard validates Slack credentials
+- [x] **SETUP-01**: First-run wizard checks if Ollama is installed ✓
+- [x] **SETUP-02**: First-run wizard guides Ollama download if missing ✓
+- [x] **SETUP-03**: First-run wizard checks if required model is available ✓
+- [x] **SETUP-04**: First-run wizard triggers model download with progress indicator ✓
+- [x] **SETUP-05**: First-run wizard allows user to configure vault path ✓
+- [x] **SETUP-06**: First-run wizard validates Slack credentials ✓
 
 ### Distribution
 
-- [ ] **DIST-01**: App is distributed as .pkg installer
-- [ ] **DIST-02**: Installer places app in /Applications
-- [ ] **DIST-03**: App can be launched on login (optional LaunchAgent)
+- [x] **DIST-01**: App is distributed as .pkg installer ✓
+- [x] **DIST-02**: Installer places app in /Applications ✓
+- [x] **DIST-03**: App can be launched on login (optional LaunchAgent) ✓
 
 ---
 
@@ -101,35 +101,35 @@ These capabilities exist in the current codebase:
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| VAULT-01 | Phase 2 | Pending |
-| VAULT-02 | Phase 2 | Pending |
-| VAULT-03 | Phase 2 | Pending |
-| VAULT-04 | Phase 2 | Pending |
-| VAULT-05 | Phase 2 | Pending |
-| CLASS-01 | Phase 4 | Pending |
-| CLASS-02 | Phase 5 | Pending |
-| CLASS-03 | Phase 5 | Pending |
-| CLASS-04 | Phase 5 | Pending |
-| CLASS-05 | Phase 3 | Pending |
-| CLASS-06 | Phase 5 | Pending |
-| PROC-01 | Phase 6 | Pending |
-| PROC-02 | Phase 6 | Pending |
-| PROC-03 | Phase 6 | Pending |
-| PROC-04 | Phase 6 | Pending |
-| UI-01 | Phase 7 | Pending |
-| UI-02 | Phase 7 | Pending |
-| UI-03 | Phase 7 | Pending |
-| UI-04 | Phase 7 | Pending |
-| UI-05 | Phase 7 | Pending |
-| SETUP-01 | Phase 8 | Pending |
-| SETUP-02 | Phase 8 | Pending |
-| SETUP-03 | Phase 8 | Pending |
-| SETUP-04 | Phase 8 | Pending |
-| SETUP-05 | Phase 8 | Pending |
-| SETUP-06 | Phase 8 | Pending |
-| DIST-01 | Phase 9 | Pending |
-| DIST-02 | Phase 9 | Pending |
-| DIST-03 | Phase 9 | Pending |
+| VAULT-01 | Phase 2 | Complete |
+| VAULT-02 | Phase 2 | Complete |
+| VAULT-03 | Phase 2 | Complete |
+| VAULT-04 | Phase 2 | Complete |
+| VAULT-05 | Phase 2 | Complete |
+| CLASS-01 | Phase 4 | Complete |
+| CLASS-02 | Phase 5 | Complete |
+| CLASS-03 | Phase 5 | Complete |
+| CLASS-04 | Phase 5 | Complete |
+| CLASS-05 | Phase 3 | Complete |
+| CLASS-06 | Phase 5 | Complete |
+| PROC-01 | Phase 6 | Complete |
+| PROC-02 | Phase 6 | Complete |
+| PROC-03 | Phase 6 | Complete |
+| PROC-04 | Phase 6 | Complete |
+| UI-01 | Phase 7 | Complete |
+| UI-02 | Phase 7 | Complete |
+| UI-03 | Phase 7 | Complete |
+| UI-04 | Phase 7 | Complete |
+| UI-05 | Phase 7 | Complete |
+| SETUP-01 | Phase 8 | Complete |
+| SETUP-02 | Phase 8 | Complete |
+| SETUP-03 | Phase 8 | Complete |
+| SETUP-04 | Phase 8 | Complete |
+| SETUP-05 | Phase 8 | Complete |
+| SETUP-06 | Phase 8 | Complete |
+| DIST-01 | Phase 9 | Complete |
+| DIST-02 | Phase 9 | Complete |
+| DIST-03 | Phase 9 | Complete |
 
 ---
 

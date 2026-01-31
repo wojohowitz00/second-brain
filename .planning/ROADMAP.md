@@ -149,7 +149,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 08-01-PLAN.md - SetupWizard with step-based first-run flow (TDD)
+- [x] 08-01-PLAN.md - SetupWizard with step-based first-run flow (TDD) ✓
 
 ### Phase 9: Packaging
 **Goal**: App is distributed as .pkg installer for non-technical users
@@ -181,5 +181,5 @@ Phases execute in numeric order: 1 → 2 → 2.5 → 3 → 4 → 5 → 6 → 7 �
 | 5. Multi-Level Classification | 1/1 | Complete ✓ | 2026-01-31 |
 | 6. Processing Integration | 3/3 | Complete ✓ | 2026-01-31 |
 | 7. Menu Bar Interface | 2/2 | Complete ✓ | 2026-01-31 |
-| 8. First-Run Wizard | 0/TBD | Not started | - |
+| 8. First-Run Wizard | 1/1 | Complete ✓ | 2026-01-31 |
 | 9. Packaging | 2/2 | Complete ✓ | 2026-01-31 |
