@@ -20,7 +20,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 5: Multi-Level Classification** - Complete PARA/subject/category pipeline ✓
 - [x] **Phase 6: Processing Integration** - Wire classification to message processor ✓
 - [x] **Phase 7: Menu Bar Interface** - macOS UI layer with status display ✓
-- [ ] **Phase 8: First-Run Wizard** - Setup UX for Ollama and vault
+- [x] **Phase 8: First-Run Wizard** - Setup UX for Ollama and vault ✓
 - [ ] **Phase 9: Packaging** - .pkg installer for distribution
 
 ## Phase Details
