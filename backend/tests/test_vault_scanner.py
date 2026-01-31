@@ -207,3 +207,290 @@ class TestVaultScannerConvenience:
         result = scan_vault_structure()
         
         assert "Personal" in result
+
+
+class TestVaultScannerCache:
+    """Test VaultScanner caching behavior."""
+
+    def test_no_cache_creates_cache(self, tmp_path, monkeypatch):
+        """No cache file exists -> scans and creates cache."""
+        from vault_scanner import VaultScanner
+        import vault_scanner
+        
+        (tmp_path / "Personal" / "1_Projects").mkdir(parents=True)
+        cache_dir = tmp_path / ".state"
+        cache_dir.mkdir()
+        
+        monkeypatch.setattr(vault_scanner, "CACHE_FILE", cache_dir / "vault_cache.json")
+        
+        scanner = VaultScanner(vault_path=tmp_path)
+        result = scanner.get_structure()
+        
+        assert (cache_dir / "vault_cache.json").exists()
+        assert "Personal" in result
+
+    def test_valid_cache_returns_without_scanning(self, tmp_path, monkeypatch):
+        """Valid cache (< TTL) returns cached structure without scanning."""
+        from vault_scanner import VaultScanner
+        import vault_scanner
+        import json
+        from datetime import datetime
+        
+        cache_dir = tmp_path / ".state"
+        cache_dir.mkdir()
+        cache_file = cache_dir / "vault_cache.json"
+        
+        # Write valid cache
+        cache_data = {
+            "structure": {"CachedDomain": {"1_Projects": ["from-cache"]}},
+            "cached_at": datetime.now().isoformat(),
+            "ttl_hours": 6,
+            "version": 1
+        }
+        cache_file.write_text(json.dumps(cache_data))
+        
+        monkeypatch.setattr(vault_scanner, "CACHE_FILE", cache_file)
+        
+        scanner = VaultScanner(vault_path=tmp_path)
+        result = scanner.get_structure()
+        
+        # Should return cached data, not scan
+        assert "CachedDomain" in result
+        assert result["CachedDomain"]["1_Projects"] == ["from-cache"]
+
+    def test_expired_cache_triggers_rescan(self, tmp_path, monkeypatch):
+        """Expired cache (> TTL) triggers fresh scan."""
+        from vault_scanner import VaultScanner
+        import vault_scanner
+        import json
+        from datetime import datetime, timedelta
+        
+        (tmp_path / "Personal" / "1_Projects").mkdir(parents=True)
+        cache_dir = tmp_path / ".state"
+        cache_dir.mkdir()
+        cache_file = cache_dir / "vault_cache.json"
+        
+        # Write expired cache (7 hours old)
+        old_time = datetime.now() - timedelta(hours=7)
+        cache_data = {
+            "structure": {"OldDomain": {}},
+            "cached_at": old_time.isoformat(),
+            "ttl_hours": 6,
+            "version": 1
+        }
+        cache_file.write_text(json.dumps(cache_data))
+        
+        monkeypatch.setattr(vault_scanner, "CACHE_FILE", cache_file)
+        
+        scanner = VaultScanner(vault_path=tmp_path)
+        result = scanner.get_structure()
+        
+        # Should have scanned and found Personal, not OldDomain
+        assert "Personal" in result
+        assert "OldDomain" not in result
+
+    def test_corrupted_cache_triggers_rescan(self, tmp_path, monkeypatch):
+        """Corrupted cache JSON triggers fresh scan."""
+        from vault_scanner import VaultScanner
+        import vault_scanner
+        
+        (tmp_path / "Personal" / "1_Projects").mkdir(parents=True)
+        cache_dir = tmp_path / ".state"
+        cache_dir.mkdir()
+        cache_file = cache_dir / "vault_cache.json"
+        
+        # Write corrupted JSON
+        cache_file.write_text("{invalid json...")
+        
+        monkeypatch.setattr(vault_scanner, "CACHE_FILE", cache_file)
+        
+        scanner = VaultScanner(vault_path=tmp_path)
+        result = scanner.get_structure()
+        
+        assert "Personal" in result
+
+    def test_cache_missing_timestamp_triggers_rescan(self, tmp_path, monkeypatch):
+        """Cache missing timestamp triggers fresh scan."""
+        from vault_scanner import VaultScanner
+        import vault_scanner
+        import json
+        
+        (tmp_path / "Personal" / "1_Projects").mkdir(parents=True)
+        cache_dir = tmp_path / ".state"
+        cache_dir.mkdir()
+        cache_file = cache_dir / "vault_cache.json"
+        
+        # Write cache without timestamp
+        cache_data = {"structure": {"OldDomain": {}}, "version": 1}
+        cache_file.write_text(json.dumps(cache_data))
+        
+        monkeypatch.setattr(vault_scanner, "CACHE_FILE", cache_file)
+        
+        scanner = VaultScanner(vault_path=tmp_path)
+        result = scanner.get_structure()
+        
+        assert "Personal" in result
+
+    def test_force_refresh_bypasses_cache(self, tmp_path, monkeypatch):
+        """force_refresh=True bypasses cache."""
+        from vault_scanner import VaultScanner
+        import vault_scanner
+        import json
+        from datetime import datetime
+        
+        (tmp_path / "Personal" / "1_Projects").mkdir(parents=True)
+        cache_dir = tmp_path / ".state"
+        cache_dir.mkdir()
+        cache_file = cache_dir / "vault_cache.json"
+        
+        # Write valid cache
+        cache_data = {
+            "structure": {"CachedDomain": {}},
+            "cached_at": datetime.now().isoformat(),
+            "ttl_hours": 6,
+            "version": 1
+        }
+        cache_file.write_text(json.dumps(cache_data))
+        
+        monkeypatch.setattr(vault_scanner, "CACHE_FILE", cache_file)
+        
+        scanner = VaultScanner(vault_path=tmp_path)
+        result = scanner.get_structure(force_refresh=True)
+        
+        # Should have scanned and found Personal, not CachedDomain
+        assert "Personal" in result
+
+    def test_manual_rescan_bypasses_cache(self, tmp_path, monkeypatch):
+        """manual_rescan() bypasses cache."""
+        from vault_scanner import VaultScanner
+        import vault_scanner
+        import json
+        from datetime import datetime
+        
+        (tmp_path / "Personal" / "1_Projects").mkdir(parents=True)
+        cache_dir = tmp_path / ".state"
+        cache_dir.mkdir()
+        cache_file = cache_dir / "vault_cache.json"
+        
+        # Write valid cache
+        cache_data = {
+            "structure": {"CachedDomain": {}},
+            "cached_at": datetime.now().isoformat(),
+            "ttl_hours": 6,
+            "version": 1
+        }
+        cache_file.write_text(json.dumps(cache_data))
+        
+        monkeypatch.setattr(vault_scanner, "CACHE_FILE", cache_file)
+        
+        scanner = VaultScanner(vault_path=tmp_path)
+        result = scanner.manual_rescan()
+        
+        assert "Personal" in result
+
+    def test_cache_persists_across_instances(self, tmp_path, monkeypatch):
+        """Cache persists across VaultScanner instances."""
+        from vault_scanner import VaultScanner
+        import vault_scanner
+        
+        (tmp_path / "Personal" / "1_Projects").mkdir(parents=True)
+        cache_dir = tmp_path / ".state"
+        cache_dir.mkdir()
+        cache_file = cache_dir / "vault_cache.json"
+        
+        monkeypatch.setattr(vault_scanner, "CACHE_FILE", cache_file)
+        
+        # First instance creates cache
+        scanner1 = VaultScanner(vault_path=tmp_path)
+        scanner1.get_structure()
+        
+        # Second instance should use same cache
+        scanner2 = VaultScanner(vault_path=tmp_path)
+        result = scanner2.get_structure()
+        
+        assert "Personal" in result
+
+
+class TestVaultScannerVocabulary:
+    """Test vocabulary extraction."""
+
+    def test_get_vocabulary_returns_flat_lists(self, tmp_path, monkeypatch):
+        """get_vocabulary() returns flat lists of domains, para_types, subjects."""
+        from vault_scanner import VaultScanner
+        import vault_scanner
+        
+        (tmp_path / "Personal" / "1_Projects" / "apps").mkdir(parents=True)
+        (tmp_path / "Personal" / "2_Areas" / "health").mkdir(parents=True)
+        (tmp_path / "CCBH" / "1_Projects" / "clients").mkdir(parents=True)
+        cache_dir = tmp_path / ".state"
+        cache_dir.mkdir()
+        
+        monkeypatch.setattr(vault_scanner, "CACHE_FILE", cache_dir / "vault_cache.json")
+        
+        scanner = VaultScanner(vault_path=tmp_path)
+        vocab = scanner.get_vocabulary()
+        
+        assert "domains" in vocab
+        assert "para_types" in vocab
+        assert "subjects" in vocab
+        assert isinstance(vocab["domains"], list)
+
+    def test_vocabulary_includes_all_para_types(self, tmp_path, monkeypatch):
+        """Vocabulary includes all unique PARA names across domains."""
+        from vault_scanner import VaultScanner
+        import vault_scanner
+        
+        (tmp_path / "Personal" / "1_Projects").mkdir(parents=True)
+        (tmp_path / "Personal" / "2_Areas").mkdir(parents=True)
+        (tmp_path / "CCBH" / "3_Resources").mkdir(parents=True)
+        cache_dir = tmp_path / ".state"
+        cache_dir.mkdir()
+        
+        monkeypatch.setattr(vault_scanner, "CACHE_FILE", cache_dir / "vault_cache.json")
+        
+        scanner = VaultScanner(vault_path=tmp_path)
+        vocab = scanner.get_vocabulary()
+        
+        assert "1_Projects" in vocab["para_types"]
+        assert "2_Areas" in vocab["para_types"]
+        assert "3_Resources" in vocab["para_types"]
+
+    def test_vocabulary_includes_all_subjects(self, tmp_path, monkeypatch):
+        """Vocabulary includes all unique subjects across all PARA folders."""
+        from vault_scanner import VaultScanner
+        import vault_scanner
+        
+        (tmp_path / "Personal" / "1_Projects" / "apps").mkdir(parents=True)
+        (tmp_path / "Personal" / "1_Projects" / "writing").mkdir(parents=True)
+        (tmp_path / "CCBH" / "2_Areas" / "clients").mkdir(parents=True)
+        cache_dir = tmp_path / ".state"
+        cache_dir.mkdir()
+        
+        monkeypatch.setattr(vault_scanner, "CACHE_FILE", cache_dir / "vault_cache.json")
+        
+        scanner = VaultScanner(vault_path=tmp_path)
+        vocab = scanner.get_vocabulary()
+        
+        assert "apps" in vocab["subjects"]
+        assert "writing" in vocab["subjects"]
+        assert "clients" in vocab["subjects"]
+
+    def test_vocabulary_sorted_alphabetically(self, tmp_path, monkeypatch):
+        """Vocabulary lists are sorted alphabetically."""
+        from vault_scanner import VaultScanner
+        import vault_scanner
+        
+        (tmp_path / "Personal" / "1_Projects" / "zebra").mkdir(parents=True)
+        (tmp_path / "Personal" / "1_Projects" / "apple").mkdir(parents=True)
+        (tmp_path / "CCBH" / "1_Projects" / "mango").mkdir(parents=True)
+        cache_dir = tmp_path / ".state"
+        cache_dir.mkdir()
+        
+        monkeypatch.setattr(vault_scanner, "CACHE_FILE", cache_dir / "vault_cache.json")
+        
+        scanner = VaultScanner(vault_path=tmp_path)
+        vocab = scanner.get_vocabulary()
+        
+        assert vocab["domains"] == sorted(vocab["domains"])
+        assert vocab["para_types"] == sorted(vocab["para_types"])
+        assert vocab["subjects"] == sorted(vocab["subjects"])
