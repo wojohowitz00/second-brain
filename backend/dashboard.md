@@ -119,9 +119,72 @@ SORT due_date ASC
 
 ---
 
+## 🎯 Kanban Board
+
+Tasks grouped by status for workflow visualization.
+
+### Backlog
+```dataview
+TABLE
+    task as "Task",
+    priority as "Priority",
+    project as "Project",
+    domain as "Domain"
+FROM ""
+WHERE type = "task" AND status = "backlog"
+SORT priority ASC
+```
+
+### In Progress
+```dataview
+TABLE
+    task as "Task",
+    priority as "Priority",
+    project as "Project",
+    domain as "Domain"
+FROM ""
+WHERE type = "task" AND status = "in_progress"
+SORT priority ASC
+```
+
+### Blocked
+```dataview
+TABLE
+    task as "Task",
+    priority as "Priority",
+    project as "Project",
+    domain as "Domain"
+FROM ""
+WHERE type = "task" AND status = "blocked"
+SORT created DESC
+```
+
+---
+
+## ✅ Todo List
+
+All open tasks sorted by priority and due date.
+
+```dataview
+TABLE
+    task as "Task",
+    status as "Status",
+    priority as "Priority",
+    due_date as "Due",
+    project as "Project",
+    domain as "Domain"
+FROM ""
+WHERE type = "task" AND status != "done"
+SORT choice(priority, {"high": 1, "medium": 2, "low": 3}, 9) ASC, due_date ASC
+```
+
+---
+
 ## Quick Stats
 
 - **Total Ideas**: `$= dv.pages('"ideas"').length`
 - **Active Projects**: `$= dv.pages('"projects"').where(p => p.status == "active").length`
 - **People Tracked**: `$= dv.pages('"people"').length`
 - **Pending Admin**: `$= dv.pages('"admin"').where(p => p.status == "pending").length`
+- **Open Tasks**: `$= dv.pages().where(p => p.type == "task" && p.status != "done").length`
+

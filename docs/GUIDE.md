@@ -137,6 +137,40 @@ cd ~/SecondBrain && claude "/today"
 **Slack**: Post to `#sb-inbox` (one thought per message)
 **Direct**: `claude "new task: [description]"`
 
+### Task Capture (Kanban/Todo)
+
+Capture tasks via Slack with structured indicators:
+
+```
+todo: Create RVM dashboard domain:just-value project:rvm p1
+kanban: Review PR for auth feature domain:personal project:apps p2
+```
+
+**Prefixes:**
+- `todo:` — Creates a task for Todo list view
+- `kanban:` — Creates a task for Kanban board view
+
+**Indicators:**
+| Indicator | Example | Effect |
+|-----------|---------|--------|
+| `domain:` | `domain:personal` | Routes to Personal folder |
+| `project:` | `project:rvm` | Tags with project name |
+| `p1` | | High priority |
+| `p2` | | Medium priority (default) |
+| `p3` | | Low priority |
+
+**Status Commands (Thread Replies):**
+Reply to a task message with these commands to change status:
+- `!done` — Mark task complete
+- `!progress` — Mark as in progress
+- `!blocked` — Mark as blocked
+- `!backlog` — Return to backlog
+
+**Dashboard Views:**
+See your tasks in the [dashboard](obsidian://open?vault=PARA&file=Home/dashboard.md):
+- 🎯 **Kanban Board** — Tasks grouped by status
+- ✅ **Todo List** — All open tasks sorted by priority
+
 ### Working Session
 Keep Claude open while writing:
 - "Is there evidence for [claim]?"
