@@ -40,18 +40,39 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [ -d "$SCRIPT_DIR/_scripts" ]; then
     cp "$SCRIPT_DIR/_scripts/"*.py "$SCRIPTS_PATH/"
-    cp "$SCRIPT_DIR/_scripts/requirements.txt" "$SCRIPTS_PATH/"
     cp "$SCRIPT_DIR/_scripts/.env.example" "$SCRIPTS_PATH/"
+    # Copy pyproject.toml for uv dependency management
+    if [ -f "$SCRIPT_DIR/pyproject.toml" ]; then
+        cp "$SCRIPT_DIR/pyproject.toml" "$SCRIPTS_PATH/"
+    fi
     echo -e "${GREEN}  ✓ Scripts copied to $SCRIPTS_PATH${NC}"
 else
     echo -e "${YELLOW}  ! Scripts already in place${NC}"
 fi
 
-# Step 4: Install Python dependencies
-echo -e "${YELLOW}[4/7] Installing Python dependencies...${NC}"
+# Step 4: Install Python dependencies with uv
+echo -e "${YELLOW}[4/7] Installing Python dependencies with uv...${NC}"
+
+# Check if uv is installed
+if ! command -v uv &> /dev/null; then
+    echo -e "${RED}  ✗ uv not found. Install with: curl -LsSf https://astral.sh/uv/install.sh | sh${NC}"
+    exit 1
+fi
+
+# Install dependencies in the scripts directory
 cd "$SCRIPTS_PATH"
-python3 -m pip install -r requirements.txt --quiet
-echo -e "${GREEN}  ✓ Dependencies installed${NC}"
+if [ -f "pyproject.toml" ]; then
+    uv sync
+    echo -e "${GREEN}  ✓ Dependencies installed with uv${NC}"
+else
+    echo -e "${YELLOW}  ! pyproject.toml not found, falling back to pip${NC}"
+    if [ -f "requirements.txt" ]; then
+        python3 -m pip install -r requirements.txt --quiet
+        echo -e "${GREEN}  ✓ Dependencies installed with pip${NC}"
+    else
+        echo -e "${RED}  ✗ No dependency file found${NC}"
+    fi
+fi
 
 # Step 5: Copy dashboard to vault root
 echo -e "${YELLOW}[5/7] Setting up Obsidian dashboard...${NC}"
@@ -82,13 +103,13 @@ echo ""
 echo "  Then add these lines:"
 echo "  ┌──────────────────────────────────────────────────────────────┐"
 echo "  │ # Process Slack inbox every 2 minutes                       │"
-echo "  │ */2 * * * * cd $SCRIPTS_PATH && source .env && python3 process_inbox.py >> /tmp/wry_sb.log 2>&1"
+echo "  │ */2 * * * * cd $SCRIPTS_PATH && source .env && uv run process_inbox.py >> /tmp/wry_sb.log 2>&1"
 echo "  │                                                              │"
 echo "  │ # Health check every hour                                    │"
-echo "  │ 0 * * * * cd $SCRIPTS_PATH && source .env && python3 health_check.py --quiet >> /tmp/wry_sb-health.log 2>&1"
+echo "  │ 0 * * * * cd $SCRIPTS_PATH && source .env && uv run health_check.py --quiet >> /tmp/wry_sb-health.log 2>&1"
 echo "  │                                                              │"
 echo "  │ # Process fix commands every 5 minutes                       │"
-echo "  │ */5 * * * * cd $SCRIPTS_PATH && source .env && python3 fix_handler.py >> /tmp/wry_sb-fix.log 2>&1"
+echo "  │ */5 * * * * cd $SCRIPTS_PATH && source .env && uv run fix_handler.py >> /tmp/wry_sb-fix.log 2>&1"
 echo "  └──────────────────────────────────────────────────────────────┘"
 echo ""
 

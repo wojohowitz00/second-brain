@@ -32,6 +32,7 @@ A personal knowledge capture system that automatically classifies thoughts from 
 ### macOS
 - macOS 10.15 or later
 - Python 3.9+
+- uv (install with: `curl -LsSf https://astral.sh/uv/install.sh | sh`)
 - Obsidian (free download from obsidian.md)
 
 ### Slack App
@@ -73,8 +74,8 @@ chmod +x setup.sh
 
 3. **Install dependencies**
    ```bash
-   cd ~/SecondBrain/_scripts
-   pip3 install -r requirements.txt
+   cd ~/second-brain-setup/backend
+   uv sync
    ```
 
 4. **Configure environment**
@@ -124,13 +125,13 @@ Add these to your crontab (`crontab -e`):
 
 ```cron
 # Process inbox every 2 minutes
-*/2 * * * * cd ~/SecondBrain/_scripts && source .env && python3 process_inbox.py >> /tmp/wry_sb.log 2>&1
+*/2 * * * * cd ~/second-brain-setup/backend && source _scripts/.env && uv run _scripts/process_inbox.py >> /tmp/wry_sb.log 2>&1
 
 # Health check every hour
-0 * * * * cd ~/SecondBrain/_scripts && source .env && python3 health_check.py --quiet >> /tmp/sb-health.log 2>&1
+0 * * * * cd ~/second-brain-setup/backend && source _scripts/.env && uv run _scripts/health_check.py --quiet >> /tmp/sb-health.log 2>&1
 
 # Process fix commands every 5 minutes
-*/5 * * * * cd ~/SecondBrain/_scripts && source .env && python3 fix_handler.py >> /tmp/sb-fix.log 2>&1
+*/5 * * * * cd ~/second-brain-setup/backend && source _scripts/.env && uv run _scripts/fix_handler.py >> /tmp/sb-fix.log 2>&1
 ```
 
 ## Usage
@@ -242,9 +243,9 @@ tail -20 /tmp/sb-fix.log
 
 ### Manual Health Check
 ```bash
-cd ~/SecondBrain/_scripts
-source .env
-python3 health_check.py
+cd ~/second-brain-setup/backend
+source _scripts/.env
+uv run _scripts/health_check.py
 ```
 
 ### Common Issues
