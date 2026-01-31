@@ -14,8 +14,9 @@ from pathlib import Path
 from datetime import datetime
 import yaml
 
-# Modules under test
-from process_inbox import write_to_obsidian
+# Modules under test - using new PARA-aware file writer
+from file_writer import create_note_file
+from message_classifier import ClassificationResult
 from fix_handler import move_file, _get_type_for_destination
 from state import (
     is_message_processed,
@@ -53,39 +54,45 @@ def temp_vault(tmp_path, monkeypatch):
     return vault
 
 
+@pytest.fixture
+def sample_para_classification():
+    """Sample PARA-style classification result for testing."""
+    return ClassificationResult(
+        domain="Personal",
+        para_type="1_Projects",
+        subject="apps",
+        category="idea",
+        confidence=0.85,
+        reasoning="App development idea"
+    )
+
+
 # --- Test File Creation (Success Criteria #2) ---
 
-def test_write_to_obsidian_creates_file_in_correct_folder(temp_vault, sample_classification):
+def test_create_note_file_creates_file_in_correct_folder(tmp_path, sample_para_classification):
     """
-    Test that write_to_obsidian() creates file in the correct destination folder.
+    Test that create_note_file() creates file in the correct PARA folder structure.
 
     Success Criteria #2: Backend can create .md files in test vault.
     """
-    timestamp = datetime.now().isoformat()
-
-    filepath = write_to_obsidian(sample_classification, "Original thought text", timestamp)
+    filepath = create_note_file(sample_para_classification, "Original thought text", tmp_path)
 
     # Verify file was created
     assert filepath.exists()
 
-    # Verify file is in correct folder
-    expected_folder = temp_vault / sample_classification["destination"]
-    assert filepath.parent == expected_folder
-
-    # Verify filename matches
-    expected_name = sample_classification["filename"] + ".md"
-    assert filepath.name == expected_name
+    # Verify file is in correct folder structure (domain/para_type/subject)
+    assert "Personal" in str(filepath)
+    assert "1_Projects" in str(filepath)
+    assert "apps" in str(filepath)
 
 
-def test_write_to_obsidian_has_valid_yaml_frontmatter(temp_vault, sample_classification):
+def test_create_note_file_has_valid_yaml_frontmatter(tmp_path, sample_para_classification):
     """
     Test that created files have valid YAML frontmatter with proper delimiters.
 
     Success Criteria #2: .md files have frontmatter.
     """
-    timestamp = datetime.now().isoformat()
-
-    filepath = write_to_obsidian(sample_classification, "Original thought", timestamp)
+    filepath = create_note_file(sample_para_classification, "Original thought", tmp_path)
 
     content = filepath.read_text()
 
@@ -102,42 +109,36 @@ def test_write_to_obsidian_has_valid_yaml_frontmatter(temp_vault, sample_classif
     assert isinstance(frontmatter, dict)
 
 
-def test_write_to_obsidian_frontmatter_has_required_fields(temp_vault, sample_classification):
+def test_create_note_file_frontmatter_has_required_fields(tmp_path, sample_para_classification):
     """
-    Test that frontmatter includes required fields based on destination type.
+    Test that frontmatter includes required PARA classification fields.
 
     Success Criteria #2: Frontmatter includes required fields.
     """
-    timestamp = datetime.now().isoformat()
-
-    filepath = write_to_obsidian(sample_classification, "Original thought", timestamp)
+    filepath = create_note_file(sample_para_classification, "Original thought", tmp_path)
 
     content = filepath.read_text()
     parts = content.split("---")
     frontmatter = yaml.safe_load(parts[1])
 
-    # All files should have type field
-    assert "type" in frontmatter
-
-    # For ideas destination
-    if sample_classification["destination"] == "ideas":
-        assert frontmatter["type"] == "idea"
-        assert "created" in frontmatter
-        # YAML may load date as datetime.date object or string
-        created = str(frontmatter["created"])
-        assert created == timestamp[:10]
+    # PARA classification fields
+    assert frontmatter["domain"] == "Personal"
+    assert frontmatter["para_type"] == "1_Projects"
+    assert frontmatter["subject"] == "apps"
+    assert frontmatter["category"] == "idea"
+    assert "confidence" in frontmatter
+    assert "created" in frontmatter
 
 
-def test_write_to_obsidian_includes_original_capture_text(temp_vault, sample_classification):
+def test_create_note_file_includes_original_capture_text(tmp_path, sample_para_classification):
     """
     Test that original capture text appears in the file.
 
     Success Criteria #2: Original capture text preserved.
     """
-    timestamp = datetime.now().isoformat()
     original_text = "This is my original thought that should be preserved"
 
-    filepath = write_to_obsidian(sample_classification, original_text, timestamp)
+    filepath = create_note_file(sample_para_classification, original_text, tmp_path)
 
     content = filepath.read_text()
 
@@ -148,51 +149,43 @@ def test_write_to_obsidian_includes_original_capture_text(temp_vault, sample_cla
     assert "## Original Capture" in content
 
 
-def test_write_to_obsidian_creates_different_frontmatter_per_type(temp_vault):
+def test_create_note_file_different_domains(tmp_path):
     """
-    Test that different destination types get appropriate frontmatter structures.
+    Test that different domains create files in appropriate folder structures.
     """
-    timestamp = datetime.now().isoformat()
+    # Test CCBH domain
+    ccbh_classification = ClassificationResult(
+        domain="CCBH",
+        para_type="2_Areas",
+        subject="clients",
+        category="meeting",
+        confidence=0.9,
+        reasoning="Client meeting notes"
+    )
 
-    # Test "people" destination
-    people_classification = {
-        "destination": "people",
-        "confidence": 0.9,
-        "filename": "john-doe",
-        "extracted": {
-            "name": "John Doe",
-            "aliases": ["JD"],
-            "context": "Met at conference",
-            "follow_ups": ["Send article"]
-        },
-        "linked_entities": []
-    }
-
-    filepath = write_to_obsidian(people_classification, "Met John at conference", timestamp)
+    filepath = create_note_file(ccbh_classification, "Meeting with client", tmp_path)
     content = filepath.read_text()
     parts = content.split("---")
     frontmatter = yaml.safe_load(parts[1])
 
-    # People-specific fields
-    assert frontmatter["type"] == "person"
-    assert frontmatter["name"] == "John Doe"
-    assert "aliases" in frontmatter
-    assert "context" in frontmatter
-    assert "follow_ups" in frontmatter
-    assert "last_touched" in frontmatter
+    # Verify domain-specific fields
+    assert frontmatter["domain"] == "CCBH"
+    assert frontmatter["para_type"] == "2_Areas"
+    assert "CCBH" in str(filepath)
 
 
-def test_write_to_obsidian_handles_duplicate_filenames(temp_vault, sample_classification):
+def test_create_note_file_handles_duplicate_filenames(tmp_path, sample_para_classification):
     """
-    Test that duplicate filenames get timestamp appended.
+    Test that duplicate messages get unique timestamp-based filenames.
     """
-    timestamp = datetime.now().isoformat()
-
+    import time
+    
     # Create first file
-    filepath1 = write_to_obsidian(sample_classification, "First thought", timestamp)
-
-    # Create second file with same classification (same filename)
-    filepath2 = write_to_obsidian(sample_classification, "Second thought", timestamp)
+    filepath1 = create_note_file(sample_para_classification, "First thought", tmp_path)
+    time.sleep(0.01)  # Small delay for unique timestamp
+    
+    # Create second file with same classification
+    filepath2 = create_note_file(sample_para_classification, "Second thought", tmp_path)
 
     # Files should be different
     assert filepath1 != filepath2
@@ -200,9 +193,6 @@ def test_write_to_obsidian_handles_duplicate_filenames(temp_vault, sample_classi
     # Both should exist
     assert filepath1.exists()
     assert filepath2.exists()
-
-    # Second filename should have timestamp suffix
-    assert timestamp[:10] in filepath2.stem
 
 
 # --- Test Fix Handler (Success Criteria #3) ---
