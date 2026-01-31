@@ -129,10 +129,11 @@ Plans:
   3. User can view recent activity (last 5 filed notes)
   4. User can quit app from menu bar
   5. System notification appears when new notes are filed
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 07-01: [TBD during planning]
+- [ ] 07-01-PLAN.md - MenuBarApp with rumps, status icons, sync, activity (TDD)
+- [ ] 07-02-PLAN.md - macOS notifications when notes are filed
 
 ### Phase 8: First-Run Wizard
 **Goal**: New users can complete setup without CLI knowledge
