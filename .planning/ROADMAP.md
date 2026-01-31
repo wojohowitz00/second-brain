@@ -21,7 +21,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 6: Processing Integration** - Wire classification to message processor ✓
 - [x] **Phase 7: Menu Bar Interface** - macOS UI layer with status display ✓
 - [x] **Phase 8: First-Run Wizard** - Setup UX for Ollama and vault ✓
-- [ ] **Phase 9: Packaging** - .pkg installer for distribution
+- [x] **Phase 9: Packaging** - .pkg installer for distribution ✓
 
 ## Phase Details
 
@@ -182,4 +182,4 @@ Phases execute in numeric order: 1 → 2 → 2.5 → 3 → 4 → 5 → 6 → 7 �
 | 6. Processing Integration | 3/3 | Complete ✓ | 2026-01-31 |
 | 7. Menu Bar Interface | 2/2 | Complete ✓ | 2026-01-31 |
 | 8. First-Run Wizard | 0/TBD | Not started | - |
-| 9. Packaging | 0/2 | Planned | - |
+| 9. Packaging | 2/2 | Complete ✓ | 2026-01-31 |

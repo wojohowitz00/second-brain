@@ -9,6 +9,9 @@ dependencies = [
     "pyyaml>=6.0",
     "ollama>=0.4.0",
     "rumps>=0.4.0",
+    "py2app>=0.28.9",
+    "setuptools<81",
+    "pyinstaller>=6.18.0",
 ]
 
 [project.optional-dependencies]
