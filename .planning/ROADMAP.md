@@ -14,8 +14,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation Validation** - Verify existing backend still works ✓
 - [x] **Phase 2: Vault Scanner** - Dynamic domain/PARA/subject discovery ✓
-- [ ] **Phase 2.5: Task Management** - Kanban/Todo via Slack with status transitions (INSERTED)
-- [ ] **Phase 3: Ollama Connection** - Local LLM integration and health checks
+- [x] **Phase 2.5: Task Management** - Kanban/Todo via Slack with status transitions ✓
+- [x] **Phase 3: Ollama Connection** - Local LLM integration and health checks ✓
 - [ ] **Phase 4: Basic Classification** - Single-level domain classification proof
 - [ ] **Phase 5: Multi-Level Classification** - Complete PARA/subject/category pipeline
 - [ ] **Phase 6: Processing Integration** - Wire classification to message processor
@@ -65,10 +65,10 @@ Plans:
   2. App can load specified model (Llama 3.2 3B)
   3. App can send prompt and receive response
   4. App handles Ollama errors gracefully (not running, model missing, timeout)
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 03-01: [TBD during planning]
+- [x] 03-01-PLAN.md - OllamaClient with health checks, chat, and error handling (TDD) ✓
 
 **VALIDATION CHECKPOINT:** Do not proceed to UI/packaging until Ollama classification quality is verified.
 
@@ -170,8 +170,8 @@ Phases execute in numeric order: 1 → 2 → 2.5 → 3 → 4 → 5 → 6 → 7 �
 |-------|----------------|--------|-----------|
 | 1. Foundation Validation | 2/2 | Complete ✓ | 2026-01-31 |
 | 2. Vault Scanner | 2/2 | Complete ✓ | 2026-01-31 |
-| 2.5. Task Management | 0/2 | Planned | - |
-| 3. Ollama Connection | 0/TBD | Not started | - |
+| 2.5. Task Management | 2/2 | Complete ✓ | 2026-01-31 |
+| 3. Ollama Connection | 1/1 | Complete ✓ | 2026-01-31 |
 | 4. Basic Classification | 0/TBD | Not started | - |
 | 5. Multi-Level Classification | 0/TBD | Not started | - |
 | 6. Processing Integration | 0/TBD | Not started | - |
