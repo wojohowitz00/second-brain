@@ -160,10 +160,11 @@ Plans:
   2. Installer places app in /Applications
   3. User can optionally enable launch on login
   4. Installed app runs without Python environment visible to user
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 09-01: [TBD during planning]
+- [ ] 09-01-PLAN.md — py2app bundle creation (setup.py + build script)
+- [ ] 09-02-PLAN.md — .pkg installer and LaunchAgent setup
 
 ## Progress
 
@@ -181,4 +182,4 @@ Phases execute in numeric order: 1 → 2 → 2.5 → 3 → 4 → 5 → 6 → 7 �
 | 6. Processing Integration | 3/3 | Complete ✓ | 2026-01-31 |
 | 7. Menu Bar Interface | 2/2 | Complete ✓ | 2026-01-31 |
 | 8. First-Run Wizard | 0/TBD | Not started | - |
-| 9. Packaging | 0/TBD | Not started | - |
+| 9. Packaging | 0/2 | Planned | - |
