@@ -53,8 +53,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 02-01-PLAN.md - Core vault scanner with three-level traversal (TDD)
-- [ ] 02-02-PLAN.md - Cache layer with TTL and vocabulary extraction (TDD)
+- [x] 02-01-PLAN.md - Core vault scanner with three-level traversal (TDD) ✓
+- [x] 02-02-PLAN.md - Cache layer with TTL and vocabulary extraction (TDD) ✓
 
 ### Phase 3: Ollama Connection
 **Goal**: App can communicate with local Ollama instance
