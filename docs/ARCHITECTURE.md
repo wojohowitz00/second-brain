@@ -361,6 +361,17 @@ Only messages newer than this timestamp are processed.
 
 ## Classification Pipeline
 
+### Mirrored storage (attachments)
+
+When a Slack message has file attachments, the app downloads them into the same vault folder as the note (1:1 mirrored). Allowed types: pdf, images (png, jpg, gif, webp), audio (mp3, m4a, wav), video (mp4, mov), text (txt, md, csv). Max size 50MB per file. The note body gets an "## Attachments" section with markdown links to the downloaded files. Implemented in [slack_client](backend/_scripts/slack_client.py) (`get_message_files`, `download_file`), [file_writer](backend/_scripts/file_writer.py) (`safe_attachment_filename`, `append_attachments_section`), and [process_inbox](backend/_scripts/process_inbox.py) (`_process_attachments`).
+
+### Mode: single vs pipeline
+
+- **single** (default): One LLM call classifies domain, PARA type, subject, and category.
+- **pipeline**: Three steps in sequence — (1) domain only, (2) PARA only given domain, (3) subject + category given domain and PARA. Each step can use a different model (e.g. smaller models for domain/PARA).
+
+Set `CLASSIFICATION_MODE=pipeline` to enable. Optional per-step models: `OLLAMA_MODEL_DOMAIN`, `OLLAMA_MODEL_PARA`, `OLLAMA_MODEL_FULL` (default: `OLLAMA_MODEL` for all).
+
 ### Prompt Structure
 
 ```

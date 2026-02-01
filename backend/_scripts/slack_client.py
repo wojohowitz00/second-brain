@@ -7,7 +7,8 @@ All Slack interactions should go through this module.
 import os
 import time
 import requests
-from typing import Optional
+from pathlib import Path
+from typing import List, Optional
 
 # Retry configuration
 MAX_RETRIES = 3
@@ -134,7 +135,7 @@ def fetch_messages(oldest: str = "0", limit: int = 100) -> list:
         "GET",
         "https://slack.com/api/conversations.history",
         headers={"Authorization": f"Bearer {token}"},
-        params={"channel": channel_id, "oldest": oldest, "limit": min(limit, 100)}
+        params={"channel": channel_id, "oldest": oldest, "limit": min(limit, 100)},
     )
 
     messages = data.get("messages", [])
@@ -205,6 +206,80 @@ def reply_to_message(thread_ts: str, text: str) -> dict:
     """
     channel_id = _get_channel_id()
     return post_message(channel_id, text, thread_ts)
+
+
+def get_message_files(msg: dict) -> List[dict]:
+    """
+    Return list of file dicts for a message (attachments).
+
+    Each file dict has at least: id, name, url_private or url_private_download, size, mimetype.
+    If message has "files" with only IDs, fetches full file info via files.info.
+    """
+    files = msg.get("files") or []
+    if not files:
+        return []
+    token = _get_token()
+    result = []
+    for f in files:
+        if isinstance(f, dict) and (f.get("url_private") or f.get("url_private_download")):
+            result.append(f)
+            continue
+        file_id = f.get("id") if isinstance(f, dict) else f
+        if file_id:
+            try:
+                info = files_info(file_id, token)
+                if info and (info.get("url_private") or info.get("url_private_download")):
+                    result.append(info)
+            except SlackAPIError:
+                continue
+    return result
+
+
+def files_info(file_id: str, token: Optional[str] = None) -> Optional[dict]:
+    """Get file metadata from Slack (files.info). Returns file object or None."""
+    token = token or _get_token()
+    data = _request_with_retry(
+        "GET",
+        "https://slack.com/api/files.info",
+        headers={"Authorization": f"Bearer {token}"},
+        params={"file": file_id},
+    )
+    return data.get("file")
+
+
+def download_file(
+    file_info: dict,
+    dest_path: Path,
+    token: Optional[str] = None,
+    max_size_bytes: int = 50 * 1024 * 1024,
+    allowed_extensions: tuple = (".pdf", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".mp3", ".m4a", ".wav", ".mp4", ".mov", ".txt", ".md", ".csv"),
+) -> Optional[Path]:
+    """
+    Download a Slack file to dest_path. Uses url_private_download with Bearer token.
+
+    Returns dest_path on success, None on skip/failure.
+    Skips if size > max_size_bytes or extension not in allowed_extensions.
+    """
+    token = token or _get_token()
+    url = file_info.get("url_private_download") or file_info.get("url_private")
+    if not url:
+        return None
+    size = file_info.get("size", 0)
+    if size > max_size_bytes:
+        return None
+    name = file_info.get("name") or file_info.get("title") or "attachment"
+    ext = Path(name).suffix.lower()
+    if ext and ext not in allowed_extensions:
+        return None
+    dest_path = Path(dest_path)
+    dest_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        resp = requests.get(url, headers={"Authorization": f"Bearer {token}"}, timeout=60, stream=True)
+        resp.raise_for_status()
+        dest_path.write_bytes(resp.content)
+        return dest_path
+    except Exception:
+        return None
 
 
 def send_dm(text: str, user_id: Optional[str] = None) -> dict:

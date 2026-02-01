@@ -12,12 +12,38 @@ Uses vocabulary from VaultScanner to constrain classifications.
 """
 
 import json
+import os
 import re
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Dict, List, Optional
 
 from ollama_client import OllamaClient, OllamaError
 from vault_scanner import VaultScanner
+
+
+def _load_sop(sop_root: Optional[Path] = None) -> str:
+    """
+    Load SOP markdown files from docs/sop/ and return concatenated content.
+    Used to inject agent rules into the classifier prompt.
+    """
+    if sop_root is None:
+        env_path = os.environ.get("SOP_PATH")
+        if env_path:
+            sop_root = Path(env_path)
+        else:
+            # Default: repo docs/sop relative to this script (backend/_scripts -> repo root)
+            repo_root = Path(__file__).resolve().parent.parent.parent
+            sop_root = repo_root / "docs" / "sop"
+    if not sop_root.is_dir():
+        return ""
+    order = ("naming.md", "folder-rules.md", "tasks.md")
+    parts = []
+    for name in order:
+        path = sop_root / name
+        if path.is_file():
+            parts.append(path.read_text().strip())
+    return "\n\n".join(parts) if parts else ""
 
 
 # Valid categories for message classification
@@ -32,6 +58,12 @@ DEFAULT_PARA_TYPE = "3_Resources"
 DEFAULT_CATEGORY = "reference"
 DEFAULT_SUBJECT = "general"
 DEFAULT_CONFIDENCE = 0.5
+
+# Classification mode: "single" (one shot) or "pipeline" (domain → para → subject+category)
+CLASSIFICATION_MODE_ENV = "CLASSIFICATION_MODE"
+OLLAMA_MODEL_DOMAIN_ENV = "OLLAMA_MODEL_DOMAIN"
+OLLAMA_MODEL_PARA_ENV = "OLLAMA_MODEL_PARA"
+OLLAMA_MODEL_FULL_ENV = "OLLAMA_MODEL_FULL"
 
 
 @dataclass
@@ -74,39 +106,156 @@ class MessageClassifier:
         self._ollama_client = ollama_client or OllamaClient()
         self._vault_scanner = vault_scanner or VaultScanner()
     
+    def _get_classification_mode(self) -> str:
+        """Return 'single' or 'pipeline' from env (default: single)."""
+        mode = (os.environ.get(CLASSIFICATION_MODE_ENV) or "single").strip().lower()
+        return mode if mode in ("single", "pipeline") else "single"
+
+    def _get_model_for_step(self, step: str) -> Optional[str]:
+        """Return model name for pipeline step (domain, para, subject_category) or None for default."""
+        env_map = {
+            "domain": OLLAMA_MODEL_DOMAIN_ENV,
+            "para": OLLAMA_MODEL_PARA_ENV,
+            "subject_category": OLLAMA_MODEL_FULL_ENV,
+        }
+        return os.environ.get(env_map.get(step, ""))
+
     def classify(self, message: str) -> ClassificationResult:
         """
         Classify a message into domain, PARA type, subject, and category.
-        
-        Args:
-            message: The message text to classify
-            
-        Returns:
-            ClassificationResult with all four classification levels
-            
-        Raises:
-            OllamaServerNotRunning: Ollama server is not reachable
-            OllamaTimeout: Request timed out
-            OllamaModelNotFound: Configured model not available
+
+        Uses single-shot or pipeline mode based on CLASSIFICATION_MODE env.
         """
-        # Get vocabulary from vault scanner
+        if self._get_classification_mode() == "pipeline":
+            return self._classify_pipeline(message)
+
         vocabulary = self._vault_scanner.get_vocabulary()
         structure = self._vault_scanner.get_structure()
-        
-        # Build prompt
         prompt = self._build_prompt(message, vocabulary, structure)
-        
-        # Call LLM
-        response = self._ollama_client.chat([
-            {"role": "user", "content": prompt}
-        ])
-        
-        # Extract response content
+        response = self._ollama_client.chat([{"role": "user", "content": prompt}])
         raw_response = response.get("message", {}).get("content", "")
-        
-        # Parse and validate response
         return self._parse_response(raw_response, vocabulary, structure)
-    
+
+    def _classify_pipeline(self, message: str) -> ClassificationResult:
+        """Run domain → para → subject+category pipeline and return combined result."""
+        vocabulary = self._vault_scanner.get_vocabulary()
+        structure = self._vault_scanner.get_structure()
+        valid_domains = vocabulary.get("domains", [DEFAULT_DOMAIN])
+        sop_text = _load_sop()
+        sop_section = f"\nSOP (follow when classifying):\n{sop_text}\n" if sop_text else ""
+
+        # Step 1: Domain only
+        domain_prompt = f"""You classify messages into ONE domain. Domains: {", ".join(valid_domains)}.{sop_section}
+
+MESSAGE: "{message}"
+
+Respond with ONLY this JSON: {{"domain": "...", "confidence": 0.0-1.0, "reasoning": "..."}}
+domain MUST be one of: {", ".join(valid_domains)}."""
+        model_domain = self._get_model_for_step("domain")
+        resp1 = self._ollama_client.chat([{"role": "user", "content": domain_prompt}], model=model_domain)
+        raw1 = resp1.get("message", {}).get("content", "")
+        domain, conf1, reason1 = self._parse_domain_step(raw1, valid_domains)
+        if domain is None:
+            domain = DEFAULT_DOMAIN
+            conf1 = DEFAULT_CONFIDENCE
+            reason1 = "fallback default"
+
+        # Step 2: PARA only (given domain)
+        para_prompt = f"""You classify messages into ONE PARA type. Message: "{message}". Domain (already chosen): {domain}.{sop_section}
+
+PARA Types: 1_Projects, 2_Areas, 3_Resources, 4_Archive.
+
+Respond with ONLY this JSON: {{"para_type": "...", "confidence": 0.0-1.0, "reasoning": "..."}}
+para_type MUST be one of: 1_Projects, 2_Areas, 3_Resources, 4_Archive."""
+        model_para = self._get_model_for_step("para")
+        resp2 = self._ollama_client.chat([{"role": "user", "content": para_prompt}], model=model_para)
+        raw2 = resp2.get("message", {}).get("content", "")
+        para_type, conf2, reason2 = self._parse_para_step(raw2)
+        if para_type is None:
+            para_type = DEFAULT_PARA_TYPE
+            conf2 = DEFAULT_CONFIDENCE
+            reason2 = "fallback default"
+
+        # Step 3: Subject + category (given domain, para)
+        subjects_for_domain = []
+        if domain in structure:
+            for para, subjects in structure[domain].items():
+                subjects_for_domain.extend(subjects)
+        subjects_str = ", ".join(sorted(set(subjects_for_domain))) if subjects_for_domain else "general"
+        step3_prompt = f"""You classify message into subject and category. Message: "{message}". Domain: {domain}. PARA: {para_type}.{sop_section}
+
+Subjects for this domain: {subjects_str}. Use one of these or "general".
+Categories: meeting, task, idea, reference, journal, question.
+
+Respond with ONLY this JSON: {{"subject": "...", "category": "...", "confidence": 0.0-1.0, "reasoning": "..."}}"""
+        model_full = self._get_model_for_step("subject_category")
+        resp3 = self._ollama_client.chat([{"role": "user", "content": step3_prompt}], model=model_full)
+        raw3 = resp3.get("message", {}).get("content", "")
+        subject, category, conf3, reason3 = self._parse_subject_category_step(raw3, structure, domain, para_type)
+        if subject is None:
+            subject = DEFAULT_SUBJECT
+        if category is None:
+            category = DEFAULT_CATEGORY
+        if conf3 is None:
+            conf3 = DEFAULT_CONFIDENCE
+            reason3 = "fallback default"
+
+        confidence = min(conf1, conf2, conf3) if all(x is not None for x in (conf1, conf2, conf3)) else DEFAULT_CONFIDENCE
+        reasoning = f"Pipeline: domain={reason1}; para={reason2}; subject+cat={reason3}"
+
+        return ClassificationResult(
+            domain=domain,
+            para_type=para_type,
+            subject=subject,
+            category=category,
+            confidence=confidence,
+            reasoning=reasoning,
+            raw_response=f"domain: {raw1}\npara: {raw2}\nsubject_category: {raw3}",
+        )
+
+    def _parse_domain_step(self, raw: str, valid_domains: List[str]) -> tuple:
+        """Parse domain step JSON; return (domain, confidence, reasoning)."""
+        parsed = self._parse_json_single(raw)
+        if not parsed:
+            return (None, None, None)
+        domain = self._validate_domain(parsed.get("domain", ""), valid_domains)
+        conf = self._validate_confidence(parsed.get("confidence", DEFAULT_CONFIDENCE))
+        reason = parsed.get("reasoning", "") or "Pipeline step"
+        return (domain, conf, reason)
+
+    def _parse_para_step(self, raw: str) -> tuple:
+        """Parse para_type step response; return (para_type, confidence, reasoning)."""
+        parsed = self._parse_json_single(raw)
+        if not parsed:
+            return (None, None, None)
+        para = self._validate_para(parsed.get("para_type", ""))
+        conf = self._validate_confidence(parsed.get("confidence", DEFAULT_CONFIDENCE))
+        reason = parsed.get("reasoning", "") or "Pipeline step"
+        return (para, conf, reason)
+
+    def _parse_subject_category_step(
+        self, raw: str, structure: Dict, domain: str, para_type: str
+    ) -> tuple:
+        """Parse subject+category step; return (subject, category, confidence, reasoning)."""
+        parsed = self._parse_json_single(raw)
+        if not parsed:
+            return (None, None, None, None)
+        subject = self._validate_subject(parsed.get("subject", ""), structure, domain, para_type)
+        category = self._validate_category(parsed.get("category", ""))
+        conf = self._validate_confidence(parsed.get("confidence", DEFAULT_CONFIDENCE))
+        reason = parsed.get("reasoning", "") or "Pipeline step"
+        return (subject, category, conf, reason)
+
+    def _parse_json_single(self, raw: str) -> Optional[Dict]:
+        """Extract single JSON object from raw response."""
+        try:
+            json_match = re.search(r"\{[^{}]*\}", raw, re.DOTALL)
+            if json_match:
+                return json.loads(json_match.group())
+        except json.JSONDecodeError:
+            pass
+        return None
+
     def _build_prompt(
         self,
         message: str,
@@ -125,7 +274,9 @@ class MessageClassifier:
             if all_subjects:
                 subjects_by_domain.append(f"  {domain}: {', '.join(sorted(set(all_subjects)))}")
         subjects_section = "\n".join(subjects_by_domain) if subjects_by_domain else "  (no subjects discovered)"
-        
+        sop_text = _load_sop()
+        sop_section = f"\nSOP (follow when classifying):\n{sop_text}\n" if sop_text else ""
+
         return f"""You are a classification assistant for a personal knowledge management system.
 
 VOCABULARY (use ONLY these values):
@@ -135,6 +286,7 @@ Categories: meeting, task, idea, reference, journal, question
 
 SUBJECTS by domain:
 {subjects_section}
+{sop_section}
 
 MESSAGE TO CLASSIFY:
 "{message}"

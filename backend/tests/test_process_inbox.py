@@ -83,7 +83,53 @@ class TestProcessMessage:
         # Reply should mention the path
         reply_text = mock_reply.call_args[0][1]
         assert "Personal" in reply_text
-    
+        # Non-task message: create_note_file called without task_info (or task_info=None)
+        call_kwargs = mock_create.call_args[1]
+        assert call_kwargs.get("task_info") is None
+
+    @patch("process_inbox.get_classifier")
+    @patch("process_inbox.create_note_file")
+    @patch("process_inbox.reply_to_message")
+    @patch("process_inbox.set_file_for_message")
+    @patch("process_inbox.mark_message_processed")
+    def test_todo_message_files_as_task_with_task_info(
+        self, mock_mark, mock_set_file, mock_reply, mock_create, mock_get_classifier,
+        temp_state_dir, tmp_path
+    ):
+        """todo: messages get task_info (type, status, board, priority) and classifier sees clean_text."""
+        from process_inbox import process_message
+        from message_classifier import ClassificationResult
+
+        mock_classifier = Mock()
+        mock_classifier.classify.return_value = ClassificationResult(
+            domain="Personal",
+            para_type="1_Projects",
+            subject="apps",
+            category="task",
+            confidence=0.85,
+            reasoning="Task",
+        )
+        mock_get_classifier.return_value = mock_classifier
+        mock_create.return_value = tmp_path / "filed.md"
+
+        msg = {"text": "todo: Build dashboard domain:personal project:apps p1", "ts": "7777777777.777777"}
+        result = process_message(msg)
+
+        assert result is True
+        mock_classifier.classify.assert_called_once_with("Build dashboard")
+        mock_create.assert_called_once()
+        call_kwargs = mock_create.call_args[1]
+        task_info = call_kwargs.get("task_info")
+        assert task_info is not None
+        assert task_info.get("type") == "task"
+        assert task_info.get("status") == "backlog"
+        assert task_info.get("board") == "Personal"
+        assert task_info.get("priority") == "high"
+        assert task_info.get("project") == "apps"
+        assert task_info.get("view") == "todo"
+        reply_text = mock_reply.call_args[0][1]
+        assert "task" in reply_text.lower() or "backlog" in reply_text.lower()
+
     @patch("process_inbox.get_classifier")
     @patch("process_inbox.reply_to_message")
     @patch("process_inbox.mark_message_processed")

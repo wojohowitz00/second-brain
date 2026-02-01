@@ -165,14 +165,15 @@ class OllamaClient:
         status.ready = True
         return status
     
-    def chat(self, messages: list[dict], stream: bool = False) -> dict:
+    def chat(self, messages: list[dict], stream: bool = False, model: Optional[str] = None) -> dict:
         """
         Send chat messages to model.
-        
+
         Args:
             messages: List of {"role": "user"|"assistant"|"system", "content": "..."}
             stream: If True, return iterator for streaming responses
-            
+            model: Override model for this call (default: use instance model)
+
         Returns:
             Response dict with "message" containing model's reply.
             
@@ -184,7 +185,7 @@ class OllamaClient:
         """
         try:
             response = self.client.chat(
-                model=self.model,
+                model=model or self.model,
                 messages=messages,
                 stream=stream
             )

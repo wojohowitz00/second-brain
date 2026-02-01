@@ -36,7 +36,13 @@ from message_classifier import MessageClassifier, ClassificationResult
 from ollama_client import OllamaError, OllamaServerNotRunning, OllamaTimeout
 
 # PARA-aware file creation
-from file_writer import create_note_file
+from file_writer import create_note_file, append_attachments_section, safe_attachment_filename
+# Task indicators (todo:, kanban:)
+from task_parser import parse_task_indicators
+# Slack file attachments
+from slack_client import get_message_files, download_file
+# Optional Veritas Kanban push
+from veritas_client import is_push_enabled, create_task as veritas_create_task
 
 # Alert threshold - send DM if this many failures in one day
 FAILURE_ALERT_THRESHOLD = 3
@@ -83,6 +89,31 @@ def fetch_new_messages():
     return fetch_messages(oldest=last_ts)
 
 
+def _process_attachments(msg: dict, filepath: Path) -> None:
+    """
+    Download Slack message attachments to the note's folder and append markdown links.
+
+    Uses 1:1 mirrored structure: attachments live in the same folder as the note.
+    Skips files over max size or with disallowed extensions.
+    """
+    files = get_message_files(msg)
+    if not files:
+        return
+    dest_dir = filepath.parent
+    existing = set()
+    links = []
+    for file_info in files:
+        name = file_info.get("name") or file_info.get("title") or "attachment"
+        safe_name = safe_attachment_filename(name, existing)
+        dest_path = dest_dir / safe_name
+        downloaded = download_file(file_info, dest_path)
+        if downloaded:
+            existing.add(safe_name)
+            links.append((name, safe_name))
+    if links:
+        append_attachments_section(filepath, links)
+
+
 # --- Main Loop ---
 
 def process_message(msg: dict) -> bool:
@@ -107,31 +138,62 @@ def process_message(msg: dict) -> bool:
     if is_message_processed(ts):
         return True  # Already processed
 
+    # Parse task indicators (todo:, kanban:) for task notes
+    task_indicators = parse_task_indicators(text)
+    text_for_classification = task_indicators["clean_text"] if task_indicators["is_task"] else text
+
     try:
         # Classify using local LLM
         classifier = get_classifier()
-        result = classifier.classify(text)
+        result = classifier.classify(text_for_classification)
 
         if result.confidence >= 0.6:
-            # File it using PARA-aware file writer
+            # Build task_info when user used todo: or kanban:
+            task_info = None
+            if task_indicators["is_task"]:
+                board = task_indicators.get("domain") or result.domain
+                task_info = {
+                    "type": "task",
+                    "status": "backlog",
+                    "board": board,
+                    "priority": task_indicators.get("priority", "medium"),
+                    "project": task_indicators.get("project"),
+                    "view": task_indicators.get("view"),
+                }
+
             filepath = create_note_file(
                 classification=result,
                 message_text=text,
-                vault_path=VAULT_PATH
+                vault_path=VAULT_PATH,
+                task_info=task_info,
             )
 
-            # Record message-to-file mapping for fix commands
+            # Download attachments (1:1 mirrored) and append links to note
+            _process_attachments(msg, filepath)
+
+            # Optional: push task to Veritas Kanban when todo:/kanban: and VERITAS_PUSH_ENABLED
+            if task_info and is_push_enabled():
+                title = (task_indicators.get("clean_text") or text).strip()[:500]
+                veritas_create_task(
+                    title=title or "Untitled task",
+                    status=task_info.get("status", "backlog"),
+                    task_type="task",
+                    priority=task_info.get("priority"),
+                    project=task_info.get("project"),
+                )
+
+            # Record message-to-file mapping for fix commands and status_handler
             set_file_for_message(ts, filepath)
 
-            # Build path display: domain/para/subject
             path_display = f"{result.domain}/{result.para_type}/{result.subject}"
-
+            task_line = " (task → backlog)\n" if task_info else "\n"
             reply_to_message(
                 ts,
-                f"✓ Filed to *{path_display}*\n"
+                f"✓ Filed to *{path_display}*{task_line}"
                 f"Category: {result.category}\n"
                 f"Confidence: {result.confidence:.0%}\n"
                 f"_Reply `fix: <domain>` to correct_"
+                + ("\n_Reply `!done` to mark done_" if task_info else "")
             )
         else:
             # Low confidence - notify but don't file

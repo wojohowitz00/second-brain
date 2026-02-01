@@ -36,6 +36,7 @@ a = Analysis(
         'status_handler',
         'task_parser',
         'domain_classifier',
+        'veritas_client',
         # External packages
         'rumps',
         'objc',

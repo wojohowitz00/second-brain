@@ -462,3 +462,53 @@ class TestMessageClassifierIntegration:
         
         # Should complete within 30 seconds even on cold start
         assert elapsed < 30, f"Classification took {elapsed:.1f}s, expected < 30s"
+
+
+class TestLoadSop:
+    """Tests for _load_sop (SOP injection)."""
+
+    def test_load_sop_default_returns_content_when_docs_sop_exists(self):
+        """When docs/sop/ exists in repo, _load_sop returns non-empty string."""
+        from message_classifier import _load_sop
+        result = _load_sop()
+        assert isinstance(result, str)
+        # Repo has docs/sop/ with naming.md, folder-rules.md, tasks.md
+        assert "naming" in result.lower() or "folder" in result.lower() or "task" in result.lower()
+
+    def test_load_sop_nonexistent_path_returns_empty(self):
+        """When sop_root does not exist or is empty, _load_sop returns empty string."""
+        from pathlib import Path
+        from message_classifier import _load_sop
+        empty = Path("/nonexistent/sop/path")
+        assert _load_sop(empty) == ""
+
+
+class TestPipelineMode:
+    """Tests for pipeline classification mode (CLASSIFICATION_MODE=pipeline)."""
+
+    @patch.dict("os.environ", {"CLASSIFICATION_MODE": "pipeline"}, clear=False)
+    def test_pipeline_mode_runs_three_steps_and_combines_result(self):
+        """When CLASSIFICATION_MODE=pipeline, classify runs domain → para → subject_category and returns combined result."""
+        from message_classifier import MessageClassifier, ClassificationResult
+        from unittest.mock import Mock
+
+        mock_ollama = Mock()
+        mock_ollama.chat.side_effect = [
+            {"message": {"content": '{"domain": "Personal", "confidence": 0.9, "reasoning": "personal"}'}},
+            {"message": {"content": '{"para_type": "1_Projects", "confidence": 0.85, "reasoning": "project"}'}},
+            {"message": {"content": '{"subject": "apps", "category": "task", "confidence": 0.8, "reasoning": "task"}'}},
+        ]
+        mock_vault = Mock()
+        mock_vault.get_vocabulary.return_value = {"domains": ["Personal", "Just-Value", "CCBH"]}
+        mock_vault.get_structure.return_value = {"Personal": {"1_Projects": ["apps"], "2_Areas": [], "3_Resources": [], "4_Archive": []}}
+
+        classifier = MessageClassifier(ollama_client=mock_ollama, vault_scanner=mock_vault)
+        result = classifier.classify("Build the dashboard")
+
+        assert result.domain == "Personal"
+        assert result.para_type == "1_Projects"
+        assert result.subject == "apps"
+        assert result.category == "task"
+        assert 0.0 <= result.confidence <= 1.0
+        assert "Pipeline" in result.reasoning
+        assert mock_ollama.chat.call_count == 3

@@ -139,6 +139,35 @@ class TestBuildFrontmatter:
         # Verify it doesn't break YAML parsing
         assert result.count("---") == 2  # Two delimiters
 
+    def test_task_info_adds_task_frontmatter(self):
+        """When task_info is passed, frontmatter includes type, status, board, priority, project."""
+        from file_writer import build_frontmatter
+        from message_classifier import ClassificationResult
+
+        classification = ClassificationResult(
+            domain="Personal",
+            para_type="1_Projects",
+            subject="apps",
+            category="task",
+            confidence=0.9,
+            reasoning="Task",
+        )
+        task_info = {
+            "type": "task",
+            "status": "backlog",
+            "board": "Personal",
+            "priority": "high",
+            "project": "apps",
+            "view": "todo",
+        }
+        result = build_frontmatter(classification, "2026-01-31T12:00:00", task_info=task_info)
+        assert "type: task" in result
+        assert "status: backlog" in result
+        assert "board: Personal" in result
+        assert "priority: high" in result
+        assert "project: apps" in result
+        assert "view: todo" in result
+
 
 class TestCreateNoteFile:
     """Test cases for create_note_file function."""
@@ -305,8 +334,46 @@ class TestCreateNoteFile:
         assert isinstance(result, Path)
 
 
+class TestSafeAttachmentFilename:
+    """Tests for safe_attachment_filename."""
+
+    def test_returns_safe_name_with_extension(self):
+        from file_writer import safe_attachment_filename
+        assert safe_attachment_filename("My File.pdf") == "my-file.pdf"
+        assert safe_attachment_filename("image.PNG") == "image.png"
+
+    def test_avoids_collision_with_existing(self):
+        from file_writer import safe_attachment_filename
+        existing = {"my-file.pdf"}
+        assert safe_attachment_filename("My File.pdf", existing) == "my-file_1.pdf"
+        existing.add("my-file_1.pdf")
+        assert safe_attachment_filename("My File.pdf", existing) == "my-file_2.pdf"
+
+
+class TestAppendAttachmentsSection:
+    """Tests for append_attachments_section."""
+
+    def test_appends_links_to_note(self, tmp_path):
+        from file_writer import append_attachments_section
+        note = tmp_path / "note.md"
+        note.write_text("---\ntitle: x\n---\n\n## Body\n\nContent.")
+        append_attachments_section(note, [("Doc", "doc.pdf"), ("Image", "img.png")])
+        content = note.read_text()
+        assert "## Attachments" in content
+        assert "[Doc](doc.pdf)" in content
+        assert "[Image](img.png)" in content
+
+    def test_skips_if_already_has_attachments(self, tmp_path):
+        from file_writer import append_attachments_section
+        note = tmp_path / "note.md"
+        note.write_text("---\ntitle: x\n---\n\n## Attachments\n\n- [x](x.pdf)")
+        append_attachments_section(note, [("Y", "y.pdf")])
+        content = note.read_text()
+        assert content.count("## Attachments") == 1
+        assert "y.pdf" not in content
+
+
 class TestIntegration:
-    """Integration tests for full file creation workflow."""
     
     def test_end_to_end_file_creation(self, tmp_path):
         """Complete workflow: classification result → valid vault file."""
