@@ -10,6 +10,8 @@ Verifies:
 Run via cron hourly or manually to monitor system health.
 """
 
+import os
+import shutil
 import sys
 from datetime import datetime
 
@@ -48,6 +50,10 @@ def check_health(max_age_minutes: int = 60, alert: bool = True) -> tuple[bool, l
     status = get_last_run_status()
     if not status:
         issues.append("Cannot read run status (state may be corrupted)")
+
+    # Optional: YouTube dependencies (only when enabled)
+    if _youtube_checks_enabled():
+        issues.extend(check_youtube_dependencies())
 
     # Report
     is_healthy = len(issues) == 0
@@ -111,6 +117,23 @@ def main():
         pass  # Silent success
     elif not is_healthy:
         sys.exit(1)
+
+
+def _youtube_checks_enabled() -> bool:
+    value = (os.environ.get("YOUTUBE_INGEST_ENABLED") or os.environ.get("CHECK_YOUTUBE_DEPS") or "").strip().lower()
+    return value in {"1", "true", "yes", "on"}
+
+
+def check_youtube_dependencies() -> list[str]:
+    issues = []
+    if shutil.which("yt-dlp") is None:
+        issues.append("YouTube: yt-dlp not found")
+    if shutil.which("ffmpeg") is None:
+        issues.append("YouTube: ffmpeg not found")
+    mode = (os.environ.get("YOUTUBE_TRANSCRIPT_MODE") or "").strip().lower()
+    if mode == "whisper" and shutil.which("whisper") is None:
+        issues.append("YouTube: whisper not found (required for whisper mode)")
+    return issues
 
 
 if __name__ == "__main__":

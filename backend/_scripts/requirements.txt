@@ -6,3 +6,7 @@ requests>=2.28.0
 
 # YAML parsing for Obsidian frontmatter
 PyYAML>=6.0
+
+# Optional: YouTube ingestion
+yt-dlp
+openai-whisper

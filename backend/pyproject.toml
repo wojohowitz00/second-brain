@@ -19,6 +19,10 @@ dev = [
     "pytest>=7.0.0",
     "pytest-mock>=3.0.0",
 ]
+youtube = [
+    "yt-dlp",
+    "openai-whisper",
+]
 
 [build-system]
 requires = ["hatchling"]

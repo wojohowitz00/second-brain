@@ -64,10 +64,20 @@ def sanitize_filename(text: str, max_length: int = 30) -> str:
     return result
 
 
+def _quote_yaml_value(value: Optional[str]) -> str:
+    """Quote YAML scalar values when they contain special characters."""
+    if value is None:
+        return ""
+    if ":" in value or '"' in value or "\n" in value:
+        return '"' + value.replace('"', '\\"') + '"'
+    return value
+
+
 def build_frontmatter(
     classification: "ClassificationResult",
     timestamp: str,
     task_info: Optional[dict] = None,
+    source_info: Optional[dict] = None,
 ) -> str:
     """
     Build YAML frontmatter string from classification result.
@@ -81,9 +91,7 @@ def build_frontmatter(
         Complete YAML frontmatter including --- delimiters
     """
     # Quote reasoning if it contains special characters
-    reasoning = classification.reasoning
-    if ":" in reasoning or '"' in reasoning or "\n" in reasoning:
-        reasoning = '"' + reasoning.replace('"', '\\"') + '"'
+    reasoning = _quote_yaml_value(classification.reasoning)
 
     frontmatter = f"""---
 domain: {classification.domain}
@@ -106,6 +114,35 @@ tags: []"""
             frontmatter += f"\nproject: {task_info['project']}"
         if task_info.get("view"):
             frontmatter += f"\nview: {task_info['view']}"
+
+    if source_info:
+        source = _quote_yaml_value(source_info.get("source"))
+        source_url = _quote_yaml_value(source_info.get("source_url"))
+        source_title = _quote_yaml_value(source_info.get("source_title"))
+        source_channel = _quote_yaml_value(source_info.get("source_channel"))
+        source_published = _quote_yaml_value(source_info.get("source_published"))
+        status = _quote_yaml_value(source_info.get("status"))
+        verified = source_info.get("verified")
+        if verified is True:
+            verified_value = "true"
+        elif verified is False:
+            verified_value = "false"
+        else:
+            verified_value = ""
+
+        frontmatter += f"\nsource: {source}"
+        if source_url:
+            frontmatter += f"\nsource_url: {source_url}"
+        if source_title:
+            frontmatter += f"\nsource_title: {source_title}"
+        if source_channel:
+            frontmatter += f"\nsource_channel: {source_channel}"
+        if source_published:
+            frontmatter += f"\nsource_published: {source_published}"
+        if status:
+            frontmatter += f"\nstatus: {status}"
+        if verified_value:
+            frontmatter += f"\nverified: {verified_value}"
 
     frontmatter += "\n---"
     return frontmatter
@@ -170,6 +207,100 @@ def create_note_file(
     return filepath
 
 
+def build_youtube_note_body(
+    source_url: str,
+    source_channel: Optional[str],
+    source_published: Optional[str],
+    summary: str,
+    outline: List[str],
+    actions: List[str],
+    transcript_rel_path: Optional[str],
+) -> str:
+    summary_text = summary.strip() if summary else ""
+    summary_block = summary_text if summary_text else "_Summary pending._"
+    outline_block = "\n".join(f"- {item}" for item in outline) if outline else "_Outline pending._"
+    actions_block = "\n".join(f"- {item}" for item in actions) if actions else "_Actions pending._"
+    transcript_block = (
+        f"- [{transcript_rel_path}]({transcript_rel_path})"
+        if transcript_rel_path
+        else "_Transcript pending._"
+    )
+
+    return (
+        "\n\n## Source\n\n"
+        f"- URL: {source_url}\n"
+        f"- Channel: {source_channel or 'Unknown'}\n"
+        f"- Published: {source_published or 'Unknown'}\n"
+        "\n## Summary\n\n"
+        f"{summary_block}\n"
+        "\n## Outline\n\n"
+        f"{outline_block}\n"
+        "\n## Actions\n\n"
+        f"{actions_block}\n"
+        "\n## Transcript\n\n"
+        f"{transcript_block}\n"
+    )
+
+
+def create_youtube_note_file(
+    classification: "ClassificationResult",
+    title: str,
+    source_url: str,
+    source_title: str,
+    source_channel: Optional[str],
+    source_published: Optional[str],
+    summary: str,
+    outline: List[str],
+    actions: List[str],
+    transcript_rel_path: Optional[str],
+    vault_path: Path,
+    timestamp: str = None,
+    status: str = "unverified",
+    verified: bool = False,
+) -> Path:
+    """
+    Create a YouTube note file with source metadata and structured sections.
+    """
+    if timestamp is None:
+        timestamp = datetime.now().isoformat()
+
+    folder = vault_path / classification.domain / classification.para_type / classification.subject
+    folder.mkdir(parents=True, exist_ok=True)
+
+    file_timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    sanitized_title = sanitize_filename(title or source_title or "youtube-note")
+    filename = f"{file_timestamp}-{sanitized_title}.md"
+    filepath = folder / filename
+
+    source_info = {
+        "source": "youtube",
+        "source_url": source_url,
+        "source_title": source_title,
+        "source_channel": source_channel,
+        "source_published": source_published,
+        "status": status,
+        "verified": verified,
+    }
+    frontmatter = build_frontmatter(
+        classification=classification,
+        timestamp=timestamp,
+        source_info=source_info,
+    )
+
+    body = build_youtube_note_body(
+        source_url=source_url,
+        source_channel=source_channel,
+        source_published=source_published,
+        summary=summary,
+        outline=outline,
+        actions=actions,
+        transcript_rel_path=transcript_rel_path,
+    )
+
+    filepath.write_text(frontmatter + body)
+    return filepath
+
+
 def safe_attachment_filename(original_name: str, existing: Optional[set] = None) -> str:
     """
     Return a safe filename for an attachment (kebab-case stem + original extension).
@@ -217,14 +348,14 @@ def write_classified_note(
     Args:
         classification: ClassificationResult from MessageClassifier
         message: Original message text
-        vault_root: Vault root path (defaults to ~/PARA)
+        vault_root: Vault root path (defaults to iCloud Obsidian Home)
         
     Returns:
         Path to created file
     """
     if vault_root is None:
-        vault_root = Path.home() / "PARA"
-    
+        from vault_scanner import VAULT_ROOT
+        vault_root = VAULT_ROOT
     return create_note_file(
         classification=classification,
         message_text=message,

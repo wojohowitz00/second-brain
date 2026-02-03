@@ -168,6 +168,37 @@ class TestBuildFrontmatter:
         assert "project: apps" in result
         assert "view: todo" in result
 
+    def test_source_info_adds_fields(self):
+        """When source_info is passed, frontmatter includes source metadata."""
+        from file_writer import build_frontmatter
+        from message_classifier import ClassificationResult
+
+        classification = ClassificationResult(
+            domain="Personal",
+            para_type="3_Resources",
+            subject="VideoNotes",
+            category="reference",
+            confidence=1.0,
+            reasoning="YouTube ingest",
+        )
+        source_info = {
+            "source": "youtube",
+            "source_url": "https://www.youtube.com/watch?v=abc123",
+            "source_title": "Test Video",
+            "source_channel": "Channel Name",
+            "source_published": "2026-01-01",
+            "status": "unverified",
+            "verified": False,
+        }
+        result = build_frontmatter(classification, "2026-01-31T12:00:00", source_info=source_info)
+        assert "source: youtube" in result
+        assert "source_url:" in result
+        assert "source_title:" in result
+        assert "source_channel:" in result
+        assert "source_published:" in result
+        assert "status: unverified" in result
+        assert "verified: false" in result
+
 
 class TestCreateNoteFile:
     """Test cases for create_note_file function."""
@@ -332,6 +363,61 @@ class TestCreateNoteFile:
         
         result = create_note_file(classification, "Test", tmp_path)
         assert isinstance(result, Path)
+
+
+class TestYouTubeNoteHelpers:
+    """Test cases for YouTube note helper functions."""
+
+    def test_build_youtube_note_body_includes_sections(self):
+        from file_writer import build_youtube_note_body
+
+        body = build_youtube_note_body(
+            source_url="https://www.youtube.com/watch?v=abc123",
+            source_channel="Test Channel",
+            source_published="2026-01-01",
+            summary="Summary text",
+            outline=["Point A"],
+            actions=["Do thing"],
+            transcript_rel_path="_transcripts/abc123.txt",
+        )
+        assert "## Source" in body
+        assert "## Summary" in body
+        assert "## Outline" in body
+        assert "## Actions" in body
+        assert "## Transcript" in body
+        assert "_transcripts/abc123.txt" in body
+
+    def test_create_youtube_note_file_writes_content(self, tmp_path):
+        from file_writer import create_youtube_note_file
+        from message_classifier import ClassificationResult
+
+        classification = ClassificationResult(
+            domain="Personal",
+            para_type="3_Resources",
+            subject="VideoNotes",
+            category="reference",
+            confidence=1.0,
+            reasoning="YouTube ingest",
+        )
+
+        path = create_youtube_note_file(
+            classification=classification,
+            title="Test Video",
+            source_url="https://www.youtube.com/watch?v=abc123",
+            source_title="Test Video",
+            source_channel="Test Channel",
+            source_published="2026-01-01",
+            summary="Summary text",
+            outline=["Point A"],
+            actions=["Do thing"],
+            transcript_rel_path="_transcripts/abc123.txt",
+            vault_path=tmp_path,
+        )
+
+        assert path.exists()
+        content = path.read_text()
+        assert "source: youtube" in content
+        assert "## Summary" in content
 
 
 class TestSafeAttachmentFilename:

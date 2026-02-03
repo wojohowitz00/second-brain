@@ -125,6 +125,25 @@ setup_wizard
 7. slack_client.post_reply()
 ```
 
+### YouTube Ingestion Flow (optional)
+
+```
+1. User provides YouTube URL (CLI or menu bar)
+   │
+   ▼
+2. youtube_ingest.fetch_youtube_metadata()
+   │ yt-dlp
+   ▼
+3. Transcript generation
+   │ captions via yt-dlp or local Whisper
+   ▼
+4. Optional summarization (Ollama)
+   │ summary + outline + actions
+   ▼
+5. file_writer.create_youtube_note_file()
+   │ Writes to <Domain>/3_Resources/VideoNotes/
+```
+
 ### Classification Flow
 
 ```
@@ -478,7 +497,11 @@ Second Brain.app/
 | `SLACK_USER_ID` | No | - | Your user ID (U...) |
 | `OLLAMA_HOST` | No | `http://localhost:11434` | Ollama server URL |
 | `OLLAMA_MODEL` | No | `llama3.2:latest` | Model for classification |
-| `VAULT_PATH` | No | `~/PARA` | Obsidian vault path |
+| `VAULT_PATH` | No | iCloud Obsidian Home | Obsidian vault path |
+| `YOUTUBE_INGEST_ENABLED` | No | - | Enable YouTube dependency checks in health/menu bar |
+| `CHECK_YOUTUBE_DEPS` | No | - | Alias to enable YouTube dependency checks |
+| `YOUTUBE_TRANSCRIPT_MODE` | No | - | Expected transcript mode (whisper) for health checks |
+| `OLLAMA_MODEL_SUMMARY` | No | - | Override model used for YouTube summarization |
 
 ### Info.plist Keys
 

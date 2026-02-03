@@ -63,10 +63,10 @@ ollama list
 
 ### 2. Obsidian Vault
 
-You need an Obsidian vault with PARA folder structure:
+You need an Obsidian vault with PARA folder structure. Default vault path (iCloud Obsidian Home):
 
 ```
-~/PARA/                          # or your vault location
+~/Library/Mobile Documents/iCloud~md~obsidian/Documents/Home/
 ├── Personal/
 │   ├── 1_Projects/
 │   ├── 2_Areas/
@@ -80,13 +80,33 @@ You need an Obsidian vault with PARA folder structure:
 └── .obsidian/                   # required for vault detection
 ```
 
-**Creating a new vault:**
+**Creating a new vault (or use existing iCloud Obsidian vault):**
 ```bash
-mkdir -p ~/PARA/{Personal,Work}/{1_Projects,2_Areas,3_Resources,4_Archives}
-mkdir ~/PARA/.obsidian
+VAULT="$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/Home"
+mkdir -p "$VAULT"/{Personal,Work}/{1_Projects,2_Areas,3_Resources,4_Archives}
+mkdir "$VAULT/.obsidian"
 ```
 
-Then open in Obsidian: **File → Open folder as vault → Select ~/PARA**
+Then open in Obsidian: **File → Open folder as vault → Select Home** (or your vault folder). Override with `VAULT_PATH` in `.env` if using a different path.
+
+### Optional: YouTube Ingestion Dependencies
+
+If you want YouTube ingestion, install the following:
+
+- `yt-dlp` (YouTube metadata + captions)
+- `ffmpeg` (audio extraction)
+- `openai-whisper` (only if using Whisper transcription)
+
+Example (Homebrew):
+```bash
+brew install yt-dlp ffmpeg
+pip install openai-whisper
+```
+
+Enable dependency checks by setting:
+```
+YOUTUBE_INGEST_ENABLED=true
+```
 
 ### 3. Slack Workspace
 
@@ -216,14 +236,17 @@ SLACK_USER_ID=U0123456789
 
 ### Default Location
 
-Second Brain looks for your vault at `~/PARA` by default.
+Second Brain looks for your vault at **iCloud Obsidian Home** by default:
+`~/Library/Mobile Documents/iCloud~md~obsidian/Documents/Home`
 
 ### Custom Location
 
 During first run, the setup wizard will ask for your vault path. You can:
-1. Accept the default (`~/PARA`)
+1. Accept the default (iCloud Obsidian Home)
 2. Browse to select a different location
 3. Type a custom path
+
+Set `VAULT_PATH` in `.env` to override the default.
 
 ### Vault Requirements
 
@@ -236,7 +259,7 @@ Your vault must have:
 
 Second Brain discovers domains automatically from your top-level folders:
 ```
-~/PARA/
+Home/   (or your vault root)
 ├── Personal/     # Domain: Personal
 ├── Work/         # Domain: Work
 ├── Side_Projects/# Domain: Side_Projects

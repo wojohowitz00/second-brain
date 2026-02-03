@@ -37,6 +37,9 @@ a = Analysis(
         'task_parser',
         'domain_classifier',
         'veritas_client',
+        'youtube_ingest',
+        'yt_dlp',
+        'whisper',
         # External packages
         'rumps',
         'objc',

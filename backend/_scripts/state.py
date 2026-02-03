@@ -12,6 +12,7 @@ import json
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
+from urllib.parse import parse_qs, urlparse
 import fcntl
 
 # State files location
@@ -222,7 +223,8 @@ def is_system_healthy(max_age_minutes: int = 60) -> tuple[bool, str]:
 
 # --- Dead Letter Queue ---
 
-VAULT_PATH = Path.home() / "SecondBrain"
+from vault_scanner import VAULT_ROOT
+VAULT_PATH = VAULT_ROOT
 
 
 def log_to_dead_letter(
@@ -285,3 +287,157 @@ def get_failed_count_today() -> int:
     content = failed_log.read_text()
     # Count error entries by counting "## " headers (excluding the title)
     return content.count("\n## ") - content.count("# Failed")
+
+
+# --- YouTube URL Registry (Idempotency) ---
+
+YOUTUBE_URLS_FILE = STATE_DIR / "youtube_urls.json"
+
+
+def normalize_youtube_url(url: str) -> str:
+    """
+    Normalize YouTube URLs to a canonical form for idempotency tracking.
+
+    If a video id is detected, return: https://www.youtube.com/watch?v=<id>
+    Otherwise, return a sanitized URL (no fragment).
+    """
+    if not url:
+        return url
+
+    url = url.strip()
+    if "://" not in url and ("youtube.com" in url or "youtu.be" in url):
+        url = f"https://{url}"
+
+    try:
+        parsed = urlparse(url)
+    except Exception:
+        return url
+
+    host = (parsed.netloc or "").lower()
+    path = parsed.path or ""
+    video_id = None
+
+    if host in {"youtu.be", "www.youtu.be"}:
+        video_id = path.strip("/") or None
+    elif "youtube.com" in host:
+        qs = parse_qs(parsed.query)
+        if "v" in qs and qs["v"]:
+            video_id = qs["v"][0]
+        else:
+            parts = [p for p in path.split("/") if p]
+            if len(parts) >= 2 and parts[0] in {"shorts", "embed", "v"}:
+                video_id = parts[1]
+
+    if video_id:
+        return f"https://www.youtube.com/watch?v={video_id}"
+
+    if parsed.fragment:
+        parsed = parsed._replace(fragment="")
+    return parsed.geturl() or url
+
+
+def get_youtube_url_entry(url: str) -> Optional[dict]:
+    """
+    Get registry entry for a YouTube URL, if present.
+    """
+    if not url:
+        return None
+    key = normalize_youtube_url(url)
+    registry = _atomic_json_read(YOUTUBE_URLS_FILE)
+    return registry.get(key)
+
+
+def is_youtube_url_processed(url: str) -> bool:
+    """
+    Return True if the URL was successfully processed before.
+    """
+    entry = get_youtube_url_entry(url)
+    return bool(entry and entry.get("status") == "success")
+
+
+def should_process_youtube_url(url: str, force: bool = False) -> bool:
+    """
+    Decide whether a URL should be processed.
+
+    Returns False when a successful entry exists, unless force=True.
+    """
+    if force:
+        return True
+    return not is_youtube_url_processed(url)
+
+
+def record_youtube_url_status(
+    url: str,
+    status: str,
+    note_path: Optional[Path] = None,
+    error: Optional[str] = None,
+    metadata: Optional[dict] = None,
+    increment_attempts: bool = False,
+) -> dict:
+    """
+    Create or update a URL registry entry.
+    """
+    if not url:
+        return {}
+    key = normalize_youtube_url(url)
+    registry = _atomic_json_read(YOUTUBE_URLS_FILE)
+    entry = registry.get(key, {})
+
+    if not entry.get("first_seen"):
+        entry["first_seen"] = datetime.now().isoformat()
+
+    if increment_attempts:
+        entry["attempts"] = int(entry.get("attempts", 0)) + 1
+
+    entry["status"] = status
+    entry["last_updated"] = datetime.now().isoformat()
+
+    if note_path:
+        entry["note_path"] = str(note_path)
+    if error:
+        entry["last_error"] = error
+    if metadata:
+        entry["metadata"] = metadata
+
+    registry[key] = entry
+    _atomic_json_write(YOUTUBE_URLS_FILE, registry)
+    return entry
+
+
+def record_youtube_url_queued(url: str, metadata: Optional[dict] = None) -> dict:
+    """Record URL as queued for ingestion."""
+    return record_youtube_url_status(url, "queued", metadata=metadata)
+
+
+def record_youtube_url_processing(url: str, metadata: Optional[dict] = None) -> dict:
+    """Record URL as in-progress."""
+    return record_youtube_url_status(url, "processing", metadata=metadata)
+
+
+def record_youtube_url_success(
+    url: str,
+    note_path: Path,
+    metadata: Optional[dict] = None,
+) -> dict:
+    """Record URL as successfully processed."""
+    return record_youtube_url_status(
+        url,
+        "success",
+        note_path=note_path,
+        metadata=metadata,
+    )
+
+
+def record_youtube_url_failed(
+    url: str,
+    error: str,
+    metadata: Optional[dict] = None,
+) -> dict:
+    """Record URL as failed and increment attempts."""
+    return record_youtube_url_status(
+        url,
+        "failed",
+        error=error,
+        metadata=metadata,
+        increment_attempts=True,
+    )

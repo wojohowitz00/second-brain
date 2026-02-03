@@ -70,7 +70,7 @@ Brief introduction to the app.
 - Shows download progress
 
 #### Step 4: Vault Configuration
-- Shows default vault path (`~/PARA`)
+- Shows default vault path (iCloud Obsidian Home)
 - Allows you to browse and select a different path
 - Validates the path has `.obsidian/` folder (confirms it's an Obsidian vault)
 - Scans and displays discovered domains
@@ -104,7 +104,7 @@ Just realized we should add caching to the API endpoints
 Second Brain will:
 1. Classify it (likely: domain=Work, para=Projects, subject=api-optimization, category=architecture)
 2. Create a file like `2026-01-31-api-caching-idea.md`
-3. Place it in `~/PARA/Work/1_Projects/api-optimization/`
+3. Place it in your vault under `Work/1_Projects/api-optimization/` (default vault: iCloud Obsidian Home)
 4. Reply to your message with the filing location
 
 ### Multiple Thoughts
@@ -118,6 +118,40 @@ Message 2: Research shows 10% improvement with caching
 
 Message 3: Meeting with Sarah moved to Thursday
 ```
+
+---
+
+## YouTube Ingestion (Optional)
+
+Second Brain can ingest YouTube videos into your vault as reference notes.
+
+### What You Get
+- A note filed under `3_Resources/VideoNotes/`
+- Source metadata in frontmatter
+- Summary, outline, actions, and a transcript link
+
+### Menu Bar Ingest
+1. Open the menu bar app
+2. Click **Ingest YouTube URL...**
+3. Paste a YouTube URL
+4. (Optional) Enter a domain (Personal, Work, etc.)
+
+### CLI Ingest
+From the backend scripts directory:
+
+```bash
+python3 youtube_ingest.py "https://www.youtube.com/watch?v=VIDEO_ID"
+```
+
+Optional flags:
+```bash
+python3 youtube_ingest.py "URL" --domain Personal --transcript captions --no-summary
+```
+
+### Notes and Limits
+- Requires `yt-dlp` and `ffmpeg` installed
+- Whisper is required only when using `--transcript whisper`
+- Summaries use your local Ollama model
 
 **Don't combine multiple thoughts** — each message becomes one file.
 
@@ -421,12 +455,12 @@ If you notice repeated misclassifications:
 Keep your vault structure consistent:
 ```
 ✅ Good:
-~/PARA/Personal/1_Projects/
-~/PARA/Work/1_Projects/
+Vault/Personal/1_Projects/
+Vault/Work/1_Projects/
 
 ❌ Bad:
-~/PARA/Personal/Projects/
-~/PARA/Work/1_Projects/
+Vault/Personal/1_Projects/
+Vault/Work/1_Projects/
 ```
 
 Second Brain learns from your actual folder names, so consistency helps.

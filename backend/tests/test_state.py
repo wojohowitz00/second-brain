@@ -239,6 +239,52 @@ class TestAtomicJSONOperations:
 
         assert result == {}
 
+
+class TestYouTubeRegistry:
+    """Test cases for YouTube URL registry."""
+
+    def test_normalize_youtube_url_variants(self):
+        assert (
+            state.normalize_youtube_url("https://youtu.be/abc123")
+            == "https://www.youtube.com/watch?v=abc123"
+        )
+        assert (
+            state.normalize_youtube_url("https://www.youtube.com/watch?v=abc123&feature=youtu.be")
+            == "https://www.youtube.com/watch?v=abc123"
+        )
+        assert (
+            state.normalize_youtube_url("https://www.youtube.com/shorts/abc123?feature=share")
+            == "https://www.youtube.com/watch?v=abc123"
+        )
+
+    def test_record_success_and_lookup(self, temp_state_dir, monkeypatch):
+        monkeypatch.setattr(state, "YOUTUBE_URLS_FILE", temp_state_dir / "youtube_urls.json")
+
+        url = "https://youtu.be/abc123"
+        note_path = temp_state_dir / "note.md"
+        note_path.write_text("content")
+
+        state.record_youtube_url_success(url, note_path)
+
+        assert state.is_youtube_url_processed(url) is True
+        entry = state.get_youtube_url_entry(url)
+        assert entry["status"] == "success"
+        assert entry["note_path"] == str(note_path)
+
+    def test_record_failed_increments_attempts(self, temp_state_dir, monkeypatch):
+        monkeypatch.setattr(state, "YOUTUBE_URLS_FILE", temp_state_dir / "youtube_urls.json")
+
+        url = "https://www.youtube.com/watch?v=abc123"
+        state.record_youtube_url_failed(url, error="first")
+        entry = state.get_youtube_url_entry(url)
+        assert entry["status"] == "failed"
+        assert entry["attempts"] == 1
+
+        state.record_youtube_url_failed(url, error="second")
+        entry = state.get_youtube_url_entry(url)
+        assert entry["attempts"] == 2
+        assert entry["last_error"] == "second"
+
     def test_file_locking_basic_smoke_test(self, temp_state_dir):
         """Basic smoke test that file locking doesn't break operations."""
         # This is a basic test - full concurrency testing would need threading
