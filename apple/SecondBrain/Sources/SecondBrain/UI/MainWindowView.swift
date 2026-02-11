@@ -39,29 +39,12 @@ struct MainWindowView: View {
             case .corrections:
                 CorrectionView(database: database)
             case .search:
-                SearchPlaceholderView()
+                SearchView(database: database)
             case .settings:
                 SettingsView()
             }
         }
         .frame(minWidth: 700, minHeight: 500)
         .navigationTitle("Second Brain")
-    }
-}
-
-/// Placeholder for the Search view (Phase 13.4).
-struct SearchPlaceholderView: View {
-    var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 48))
-                .foregroundStyle(.secondary)
-            Text("Search")
-                .font(.title2.bold())
-            Text("Full-text search across your notes.\nComing in Phase 13.4.")
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

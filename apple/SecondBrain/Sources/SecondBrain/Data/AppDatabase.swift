@@ -102,10 +102,15 @@ public class AppDatabase {
     }
     
     /// Full-text search across notes.
+    /// Full-text search across notes.
     public func searchNotes(query: String, limit: Int = 50) throws -> [Note] {
         try dbWriter.read { db in
+            // Use FTS5 prefix query syntax (e.g. "term*") for live search behavior
             let pattern = FTS5Pattern(matchingAnyTokenIn: query)
             guard let pattern = pattern else { return [] }
+            
+            // Append wildcard to the last token if possible, or use the raw pattern
+            // A simple approach for standard tokenizer is usually sufficient
             let sql = """
                 SELECT note.*
                 FROM note
@@ -114,7 +119,9 @@ public class AppDatabase {
                 ORDER BY rank
                 LIMIT ?
                 """
-            return try Note.fetchAll(db, sql: sql, arguments: [pattern.rawPattern, limit])
+            // Attempt to match prefixes for better live search results
+            let prefixPattern = "\(pattern.rawPattern)*"
+            return try Note.fetchAll(db, sql: sql, arguments: [prefixPattern, limit])
         }
     }
     
