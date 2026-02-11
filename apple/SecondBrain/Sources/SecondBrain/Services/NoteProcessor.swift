@@ -1,5 +1,50 @@
 import Foundation
 
+public struct ClassificationResult: Decodable {
+    public let category: String
+    public let name: String?
+    public let filename: String?
+    public let title: String?
+    
+    public init(category: String, name: String? = nil, filename: String? = nil, title: String? = nil) {
+        self.category = category
+        self.name = name
+        self.filename = filename
+        self.title = title
+    }
+    
+    /// The PARA folder this classification maps to.
+    public var folderName: String {
+        switch category.lowercased() {
+        case "projects": return "Projects"
+        case "areas":    return "Areas"
+        case "resources": return "Resources"
+        case "archives": return "Archives"
+        default:         return "Inbox"
+        }
+    }
+    
+    /// Extracts a ClassificationResult from a raw LLM response string.
+    /// Handles cases where the model wraps JSON in markdown code fences.
+    public static func parse(from raw: String) -> ClassificationResult? {
+        // Strip markdown code fences if present
+        var cleaned = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if cleaned.hasPrefix("```") {
+            // Remove opening fence (```json or ```)
+            if let newlineIndex = cleaned.firstIndex(of: "\n") {
+                cleaned = String(cleaned[cleaned.index(after: newlineIndex)...])
+            }
+            // Remove closing fence
+            if cleaned.hasSuffix("```") {
+                cleaned = String(cleaned.dropLast(3)).trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+        }
+        
+        guard let data = cleaned.data(using: .utf8) else { return nil }
+        return try? JSONDecoder().decode(ClassificationResult.self, from: data)
+    }
+}
+
 public class NoteProcessor {
     private let slackClient: SlackClientProtocol
     private let ollamaClient: OllamaClientProtocol
@@ -23,13 +68,12 @@ public class NoteProcessor {
         var processedCount = 0
         
         for message in messages {
-            // Skip bots or empty messages if needed
             if message.text.isEmpty { continue }
             
-            // 2. Classify
+            // 2. Classify via Ollama
             let prompt = """
             You are a personal knowledge management assistant. Categorize the following text into one of the PARA method categories:
-            - Projects: Active goals with a deadine.
+            - Projects: Active goals with a deadline.
             - Areas: Ongoing responsibilities without a deadline.
             - Resources: Topics of interest or reference material.
             - Archives: Inactive items.
@@ -46,21 +90,28 @@ public class NoteProcessor {
             }
             """
             
-            // In a real implementation, we would parse the JSON response.
-            // For this phase, we'll just save to "Inbox" or a default location to verify flow.
-            let _ = try? await ollamaClient.generate(model: model, prompt: prompt)
+            let rawResponse = try? await ollamaClient.generate(model: model, prompt: prompt)
             
-            // 3. Save to Vault (Inbox for now)
-            let inboxURL = URL(fileURLWithPath: vaultPath).appendingPathComponent("Inbox")
-            if !fileManager.fileExists(atPath: inboxURL.path) {
-                try? fileManager.createDirectory(at: inboxURL, withIntermediateDirectories: true)
+            // 3. Parse classification (fallback to Inbox)
+            let classification: ClassificationResult
+            if let raw = rawResponse, let parsed = ClassificationResult.parse(from: raw) {
+                classification = parsed
+            } else {
+                classification = ClassificationResult(category: "Inbox")
             }
             
-            let filename = "slack_\(message.ts).md"
-            let fileURL = inboxURL.appendingPathComponent(filename)
+            // 4. Route to correct PARA folder
+            let folderURL = URL(fileURLWithPath: vaultPath).appendingPathComponent(classification.folderName)
+            if !fileManager.fileExists(atPath: folderURL.path) {
+                try? fileManager.createDirectory(at: folderURL, withIntermediateDirectories: true)
+            }
+            
+            let filename = classification.filename ?? "slack_\(message.ts).md"
+            let noteTitle = classification.title ?? "Note from Slack"
+            let fileURL = folderURL.appendingPathComponent(filename)
             
             if !fileManager.fileExists(atPath: fileURL.path) {
-                let content = "# Note from Slack\n\n\(message.text)\n"
+                let content = "# \(noteTitle)\n\n\(message.text)\n"
                 try content.write(to: fileURL, atomically: true, encoding: String.Encoding.utf8)
                 processedCount += 1
             }
@@ -69,3 +120,4 @@ public class NoteProcessor {
         return processedCount
     }
 }
+

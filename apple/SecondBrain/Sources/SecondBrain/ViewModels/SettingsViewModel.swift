@@ -5,14 +5,27 @@ import SwiftUI
 class SettingsViewModel: ObservableObject {
     @AppStorage("vaultPath") var vaultPath: String = ""
     @AppStorage("selectedModel") var selectedModel: String = ""
-    @AppStorage("slackToken") var slackToken: String = ""
     @AppStorage("slackChannelID") var slackChannelID: String = ""
+    
+    // Slack token stored securely in Keychain (not UserDefaults)
+    @Published var slackToken: String = "" {
+        didSet {
+            if slackToken != oldValue {
+                KeychainHelper.save(key: "slackToken", value: slackToken)
+            }
+        }
+    }
     
     @Published var availableModels: [String] = []
     @Published var isLoadingModels: Bool = false
     @Published var errorMessage: String?
     
     private let ollamaClient = OllamaClient()
+    
+    init() {
+        // Load token from Keychain on init
+        slackToken = KeychainHelper.read(key: "slackToken") ?? ""
+    }
     
     func fetchModels() async {
         isLoadingModels = true
@@ -61,9 +74,7 @@ class SettingsViewModel: ObservableObject {
             .appendingPathComponent("Library/LaunchAgents/com.richardyu.SecondBrain.plist")
         
         if enable {
-            // Create Plist
             let appPath = Bundle.main.bundlePath
-            // Ensure we are pointing to the executable inside the bundle
             let executablePath = appPath + "/Contents/MacOS/Second Brain"
             
             let plistContent = """
@@ -91,10 +102,9 @@ class SettingsViewModel: ObservableObject {
                 try plistContent.write(to: plistURL, atomically: true, encoding: .utf8)
             } catch {
                 print("Failed to enable start at login: \(error)")
-                isStartAtLoginEnabled = false // Revert UI
+                isStartAtLoginEnabled = false
             }
         } else {
-            // Remove Plist
             do {
                 try FileManager.default.removeItem(at: plistURL)
             } catch {
@@ -103,4 +113,3 @@ class SettingsViewModel: ObservableObject {
         }
     }
 }
-

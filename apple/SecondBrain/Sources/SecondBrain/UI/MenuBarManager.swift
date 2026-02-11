@@ -31,15 +31,15 @@ class MenuBarManager: NSObject {
         
         menu.addItem(NSMenuItem.separator())
         
-        let quitItem = NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q")
-        quitItem.target = self
-        menu.addItem(quitItem)
-        
-        menu.addItem(NSMenuItem.separator())
-        
         let settingsItem = NSMenuItem(title: "Settings...", action: #selector(openSettings), keyEquivalent: ",")
         settingsItem.target = self
         menu.addItem(settingsItem)
+        
+        menu.addItem(NSMenuItem.separator())
+        
+        let quitItem = NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q")
+        quitItem.target = self
+        menu.addItem(quitItem)
         
         statusItem.menu = menu
     }
@@ -51,7 +51,7 @@ class MenuBarManager: NSObject {
     @objc func syncNow() {
         print("Sync triggered")
         
-        let token = UserDefaults.standard.string(forKey: "slackToken") ?? ""
+        let token = KeychainHelper.read(key: "slackToken") ?? ""
         let channel = UserDefaults.standard.string(forKey: "slackChannelID") ?? ""
         let vaultPath = UserDefaults.standard.string(forKey: "vaultPath") ?? ""
         let model = UserDefaults.standard.string(forKey: "selectedModel") ?? "llama3"
