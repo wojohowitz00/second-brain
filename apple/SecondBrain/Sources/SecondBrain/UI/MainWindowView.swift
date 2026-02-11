@@ -3,6 +3,7 @@ import SwiftUI
 /// Sidebar navigation items for the main window.
 enum SidebarItem: String, CaseIterable, Identifiable {
     case dashboard = "Dashboard"
+    case corrections = "Corrections"
     case search = "Search"
     case settings = "Settings"
     
@@ -10,9 +11,10 @@ enum SidebarItem: String, CaseIterable, Identifiable {
     
     var icon: String {
         switch self {
-        case .dashboard: return "chart.bar.fill"
-        case .search:    return "magnifyingglass"
-        case .settings:  return "gear"
+        case .dashboard:   return "chart.bar.fill"
+        case .corrections: return "arrow.triangle.2.circlepath"
+        case .search:      return "magnifyingglass"
+        case .settings:    return "gear"
         }
     }
 }
@@ -34,6 +36,8 @@ struct MainWindowView: View {
             switch selectedItem {
             case .dashboard:
                 DashboardView(database: database)
+            case .corrections:
+                CorrectionView(database: database)
             case .search:
                 SearchPlaceholderView()
             case .settings:
