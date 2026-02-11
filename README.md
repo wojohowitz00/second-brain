@@ -33,12 +33,23 @@ Second Brain is a macOS menu bar application that captures messages from Slack a
 
 ## Features
 
+### Automated Pipeline (Python Backend)
 - **Local AI Classification** — Uses Ollama (no cloud API, no data leaves your machine)
 - **PARA Organization** — Files organized by Domain → Projects/Areas/Resources/Archives → Subject
 - **Menu Bar App** — Status icons, manual sync, recent activity
 - **Auto-Polling** — Checks Slack every 2 minutes while running
 - **First-Run Wizard** — Easy setup for Ollama, vault, and Slack credentials
 - **Launch on Login** — Optional LaunchAgent for automatic startup
+
+### Interactive Layer (Claude Code)
+- **Morning Rituals** — `/today` generates daily digest with priorities and automation opportunities
+- **Task Management** — `/new-task`, `/pipeline`, `/stuck`, `/doable` commands
+- **Writing Assistance** — Critique, research, and polish against your personal style guide
+- **Research Engine** — Track topics, generate digests, summarize papers
+- **Weekly Reviews** — `/weekly` surfaces patterns and suggests focus areas
+- **Progressive Context** — Skills and context files load on-demand to keep interactions focused
+
+See [GUIDE.md](GUIDE.md) for the complete interactive layer documentation.
 
 ---
 

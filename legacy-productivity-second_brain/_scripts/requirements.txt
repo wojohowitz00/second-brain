@@ -1,0 +1,17 @@
+# Second Brain System - Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# HTTP requests with connection pooling
+requests>=2.28.0
+
+# YAML parsing for Obsidian frontmatter
+PyYAML>=6.0
+
+# Anthropic Claude API for message classification
+anthropic>=0.40.0
+
+# OpenAI API for OpenAI provider support
+openai>=1.0.0
+
+# Keyring for Keychain access (optional, falls back to security CLI)
+keyring>=24.0.0

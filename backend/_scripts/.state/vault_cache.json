@@ -1,0 +1,54 @@
+{
+  "structure": {
+    "nltk_data": {
+      "tokenizers": [
+        "punkt",
+        "punkt_tab"
+      ]
+    },
+    "test-skills-project": {
+      "tests": [
+        "__pycache__"
+      ],
+      "models": [],
+      "docs": [],
+      "configs": [],
+      "data": [
+        "features",
+        "processed",
+        "raw",
+        "synthetic"
+      ],
+      "outputs": [],
+      "notebooks": [],
+      "src": [
+        "__pycache__",
+        "data",
+        "models",
+        "test_skills_project.egg-info",
+        "utils"
+      ]
+    },
+    "bmad 4": {},
+    "bmad 3": {},
+    "bmad 2": {},
+    "bmad 5": {},
+    "01_Projects": {
+      "Personal": [
+        "apps",
+        "learning",
+        "writing"
+      ],
+      "CCBH": [],
+      "Just-Value": [
+        "apps",
+        "data-science"
+      ]
+    },
+    "bmad 6": {},
+    "bmad 1": {}
+  },
+  "cached_at": "2026-02-09T14:22:04.050710",
+  "ttl_hours": 6,
+  "version": 1
+}

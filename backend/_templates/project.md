@@ -4,12 +4,18 @@ name: ""
 status: active
 next_action: ""
 tags: []
-created: ""
+created: "{{date}}"
 ---
+
+## Overview
+
+
+## Next Action
+
+> {{next_action}}
 
 ## Notes
 
 
-## Original Capture
+## History
 
-> 

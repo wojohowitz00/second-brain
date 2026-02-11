@@ -96,7 +96,7 @@ coll = COLLECT(
 app = BUNDLE(
     coll,
     name='Second Brain.app',
-    icon=None,
+    icon='resources/icon.icns',
     bundle_identifier='com.secondbrain.app',
     info_plist={
         'LSUIElement': True,  # Hide from dock

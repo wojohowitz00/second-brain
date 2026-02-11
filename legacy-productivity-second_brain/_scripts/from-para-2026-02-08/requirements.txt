@@ -1,0 +1,14 @@
+# Second Brain System - Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# HTTP requests with connection pooling
+requests>=2.28.0
+
+# YAML parsing for Obsidian frontmatter
+PyYAML>=6.0
+
+# Slack Socket Mode app + SDK
+slack-bolt>=1.18.0
+
+# Anthropic Claude API for classification
+anthropic>=0.18.0

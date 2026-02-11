@@ -77,6 +77,7 @@ You (Richard). Secondary: technically moderate users who can install Ollama but 
 - [ ] macOS .pkg installer — single installer for non-technical distribution
 - [ ] First-run setup wizard — check Ollama, guide model installation, configure vault path
 - [ ] Menu bar presence — lightweight UI showing status, last sync, manual trigger
+- [ ] Swift Migration — Native rewrite for performance and UX
 
 ### Out of Scope
 

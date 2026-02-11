@@ -3,13 +3,19 @@ type: person
 name: ""
 context: ""
 follow_ups: []
-last_touched: ""
+last_touched: "{{date}}"
 tags: []
 ---
+
+## About
+
+
+## Follow-ups
+
+- [ ]
 
 ## Notes
 
 
-## Original Capture
+## History
 
-> 

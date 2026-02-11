@@ -22,8 +22,31 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 7: Menu Bar Interface** - macOS UI layer with status display ✓
 - [x] **Phase 8: First-Run Wizard** - Setup UX for Ollama and vault ✓
 - [x] **Phase 9: Packaging** - .pkg installer for distribution ✓
+- [ ] **Phase 10: Swift Migration** - Native rewrite for performance and UX
 
 ## Phase Details
+
+### Phase 10: Swift Migration
+**Goal**: Refactor application to native Swift/SwiftUI for instant startup, low memory usage, and superior macOS integration.
+**Depends on**: Decision to migrate (Strategy A)
+**Requirements**: MIGRATION-01 (Native Performance), MIGRATION-02 (Feature Parity)
+**Success Criteria** (what must be TRUE):
+  1. App startup time < 0.5s
+  2. Idle memory usage < 20MB
+  3. Feature parity with Python v1.0 (Ollama classification, file writing, menu bar)
+  4. Native settings window and permissions handling
+**Plans**: 1 plan (initial)
+
+Plans:
+- [x] 10-01-PLAN.md — Project initialization and core backend porting (Ollama, Vault)
+- [x] 10-02-PLAN.md — Menu Bar UI and Ollama integration
+- [x] 10-02-PLAN.md — Menu Bar UI and Ollama integration
+- [x] 10-03-PLAN.md — Settings UI, Vault Configuration, and Model Selection
+- [x] 10-03-PLAN.md — Settings UI, Vault Configuration, and Model Selection
+- [x] 10-04-PLAN.md — Slack Integration and Core Processing Loop
+- [x] 10-05-PLAN.md — App Packaging, Auto-Launch, and Prompt Refinement
+- [ ] 11-01-PLAN.md — Comprehensive Testing Suite (Integration, UI, Coverage)
+
 
 ### Phase 1: Foundation Validation
 **Goal**: Existing backend capabilities are verified working

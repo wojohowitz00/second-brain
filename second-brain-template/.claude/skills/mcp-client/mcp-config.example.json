@@ -1,0 +1,26 @@
+{
+  "servers": {
+    "zapier": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-server-zapier"],
+      "env": {
+        "ZAPIER_API_KEY": "${ZAPIER_API_KEY}"
+      },
+      "description": "Access Gmail, Google Calendar, Slack, Asana via Zapier",
+      "read_only_tools": [
+        "gmail_search",
+        "gmail_get_message",
+        "calendar_list_events",
+        "asana_search_tasks",
+        "slack_read_messages"
+      ],
+      "write_tools_require_confirmation": [
+        "gmail_send",
+        "calendar_create_event",
+        "asana_create_task",
+        "slack_post_message"
+      ]
+    }
+  },
+  "_comment": "Copy this file to mcp-config.json and add your servers. Environment variables like ${VAR} are read from your shell environment."
+}

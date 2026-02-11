@@ -20,6 +20,11 @@ export PYTHONPATH="$PROJECT_DIR/backend/_scripts:$PYTHONPATH"
 
 # Build .app bundle using PyInstaller
 echo ""
+echo "Checking resources..."
+if [ ! -f "resources/icon.icns" ]; then
+    echo "Warning: resources/icon.icns not found. App will use default icon."
+fi
+
 echo "Building .app bundle with PyInstaller..."
 cd "$PROJECT_DIR/backend"
 uv run pyinstaller ../SecondBrain.spec --noconfirm

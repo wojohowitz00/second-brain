@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# DEPRECATED: Use Claude Code commands instead:
+#   /today  — Daily digest (see .claude/skills/surfacing/daily-digest/)
+# This script is retained for reference but is no longer actively maintained.
 """Generate morning digest from Obsidian vault, send to Slack DM."""
 
 from pathlib import Path

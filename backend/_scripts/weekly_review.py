@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# DEPRECATED: Use Claude Code commands instead:
+#   /weekly — Weekly review (see .claude/skills/surfacing/weekly-review/)
+# This script is retained for reference but is no longer actively maintained.
 """Generate weekly review from Obsidian vault, send to Slack DM."""
 
 from pathlib import Path

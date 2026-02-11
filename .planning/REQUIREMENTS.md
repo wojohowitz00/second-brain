@@ -72,6 +72,11 @@ These capabilities exist in the current codebase:
 - [x] **DIST-02**: Installer places app in /Applications ✓
 - [x] **DIST-03**: App can be launched on login (optional LaunchAgent) ✓
 
+### Migration
+
+- [ ] **MIGRATION-01**: App starts up instantly (< 0.5s) and uses low memory (< 20MB)
+- [ ] **MIGRATION-02**: App maintains feature parity with v1.0 Python implementation
+
 ---
 
 ## v2 Requirements (Deferred)

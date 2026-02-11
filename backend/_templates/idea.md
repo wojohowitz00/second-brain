@@ -2,13 +2,25 @@
 type: idea
 title: ""
 oneliner: ""
+status: captured
 tags: []
-created: ""
+created: "{{date}}"
 ---
 
-## Notes
+## Core Insight
+
+{{oneliner}}
+
+## Exploration
 
 
-## Original Capture
+## Related
 
-> 
+-
+
+## Status
+- [ ] Captured
+- [ ] Explored
+- [ ] Developed
+- [ ] Implemented/Archived
+
