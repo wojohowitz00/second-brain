@@ -46,6 +46,10 @@ Plans:
 - [x] 10-04-PLAN.md — Slack Integration and Core Processing Loop
 - [x] 10-05-PLAN.md — App Packaging, Auto-Launch, and Prompt Refinement
 - [ ] 11-01-PLAN.md — Comprehensive Testing Suite (Integration, UI, Coverage)
+- [ ] 13-01-PLAN.md — Data Layer (GRDB + SQLite + FTS5)
+- [ ] 13-02-PLAN.md — Main Window + Dashboard
+- [ ] 13-03-PLAN.md — Correction Mechanism
+- [ ] 13-04-PLAN.md — Config Wizard + Rich Search
 
 
 ### Phase 1: Foundation Validation

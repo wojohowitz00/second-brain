@@ -50,15 +50,18 @@ public class NoteProcessor {
     private let ollamaClient: OllamaClientProtocol
     private let vaultScanner: VaultScanner
     private let fileManager: FileManager
+    private let database: AppDatabase?
     
     public init(slackClient: SlackClientProtocol = SlackClient(),
                 ollamaClient: OllamaClientProtocol = OllamaClient(),
                 vaultScanner: VaultScanner = VaultScanner(),
-                fileManager: FileManager = .default) {
+                fileManager: FileManager = .default,
+                database: AppDatabase? = nil) {
         self.slackClient = slackClient
         self.ollamaClient = ollamaClient
         self.vaultScanner = vaultScanner
         self.fileManager = fileManager
+        self.database = database
     }
     
     public func processInbox(token: String, channelID: String, vaultPath: String, model: String) async throws -> Int {
@@ -66,6 +69,7 @@ public class NoteProcessor {
         let messages = try await slackClient.fetchHistory(token: token, channelID: channelID, latest: nil)
         
         var processedCount = 0
+        var noteRecords: [(SlackMessage, ClassificationResult, String)] = []
         
         for message in messages {
             if message.text.isEmpty { continue }
@@ -109,15 +113,40 @@ public class NoteProcessor {
             let filename = classification.filename ?? "slack_\(message.ts).md"
             let noteTitle = classification.title ?? "Note from Slack"
             let fileURL = folderURL.appendingPathComponent(filename)
+            let destinationPath = "\(classification.folderName)/\(filename)"
             
             if !fileManager.fileExists(atPath: fileURL.path) {
                 let content = "# \(noteTitle)\n\n\(message.text)\n"
                 try content.write(to: fileURL, atomically: true, encoding: String.Encoding.utf8)
                 processedCount += 1
+                noteRecords.append((message, classification, destinationPath))
+            }
+        }
+        
+        // 5. Persist to database (if available)
+        if let db = database, processedCount > 0 {
+            var syncEvent = SyncEvent(messageCount: processedCount, status: "success")
+            try db.insertSyncEvent(&syncEvent)
+            
+            if let syncId = syncEvent.id {
+                for (message, classification, destPath) in noteRecords {
+                    var note = Note(
+                        syncEventId: syncId,
+                        slackTs: message.ts,
+                        originalText: message.text,
+                        classifiedCategory: classification.category,
+                        classifiedName: classification.name,
+                        classifiedFilename: classification.filename ?? "slack_\(message.ts).md",
+                        classifiedTitle: classification.title,
+                        destinationPath: destPath
+                    )
+                    try db.insertNote(&note)
+                }
             }
         }
         
         return processedCount
     }
 }
+
 

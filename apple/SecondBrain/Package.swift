@@ -8,15 +8,22 @@ let package = Package(
     platforms: [
         .macOS(.v13)
     ],
+    dependencies: [
+        .package(url: "https://github.com/groue/GRDB.swift", from: "7.0.0"),
+    ],
     targets: [
-        // Targets are the basic building blocks of a package, defining a module or a test suite.
-        // Targets can depend on other targets in this package and products from dependencies.
         .executableTarget(
-            name: "SecondBrain"
+            name: "SecondBrain",
+            dependencies: [
+                .product(name: "GRDB", package: "GRDB.swift"),
+            ]
         ),
         .testTarget(
             name: "SecondBrainTests",
-            dependencies: ["SecondBrain"]
+            dependencies: [
+                "SecondBrain",
+                .product(name: "GRDB", package: "GRDB.swift"),
+            ]
         ),
     ]
 )
