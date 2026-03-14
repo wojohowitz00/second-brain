@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-14)
 ## Current Position
 
 Phase: 3 of 4 (Core Daily Skills)
-Plan: 0 of 4 in current phase
-Status: Phase 2 complete — ready to start Phase 3
-Last activity: 2026-03-14 — Completed Phase 2 (Memory and Session Context): MEMORY.md seeded, SessionStart/SessionEnd hooks verified
+Plan: 2 of 4 in current phase
+Status: In progress — 03-02 complete
+Last activity: 2026-03-14 — Completed 03-02-PLAN.md: EOD Update (session-end.sh Day Summary + EOD skill)
 
-Progress: [█████░░░░░] 50% (5/10 total plans)
+Progress: [██████░░░░] 60% (6/10 total plans)
 
 ## Performance Metrics
 
@@ -58,6 +58,9 @@ Recent decisions affecting current work:
 - 02-02: Session hooks registered in global ~/.claude/settings.json (not project-level), consistent with bd prime pattern
 - 02-02: SessionStart plain-text output (not JSON) — injected directly into Claude context, clearest for model comprehension
 - 02-02: Silent exit 0 when no items to report — avoids context noise when tasks are healthy
+- 03-02: Hook handles mechanical writes (timestamp only); EOD skill handles interactive reflection — clean separation of concerns
+- 03-02: Day Summary idempotent via grep check — multiple sessions same day produce at most one Day Summary header
+- 03-02: projects-health.md refresh added proactively to session-end.sh (Plan 03-04 creates the file)
 
 ### Pending Todos
 
@@ -71,6 +74,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14
-Stopped at: Phase 2 complete — MEMORY.md and session hooks verified in live session; ROADMAP and STATE updated
+Last session: 2026-03-14T23:08:44Z
+Stopped at: Completed 03-02-PLAN.md (EOD Update)
 Resume file: None
