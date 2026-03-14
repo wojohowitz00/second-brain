@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-03-14)
 ## Current Position
 
 Phase: 1 of 4 (Foundation)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-03-14 — Completed 01-01-PLAN.md (AI Workspace Foundation)
+Last activity: 2026-03-14 — Completed 01-02-PLAN.md (Vault Write Guard Hook)
 
-Progress: [█░░░░░░░░░] 8% (1/12 total plans)
+Progress: [██░░░░░░░░] 17% (2/12 total plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
-- Average duration: 4 minutes
-- Total execution time: 4 minutes
+- Total plans completed: 2
+- Average duration: ~2 minutes
+- Total execution time: ~5 minutes
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-foundation | 1/3 | 4 min | 4 min |
+| 01-foundation | 2/3 | ~5 min | ~2.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (4 min)
-- Trend: baseline established
+- Last 5 plans: 01-01 (4 min), 01-02 (79 sec)
+- Trend: fast execution
 
 *Updated after each plan completion*
 
@@ -47,6 +47,8 @@ Recent decisions affecting current work:
 - Foundation: Claude Code memory (not vault files) stores cross-session preferences and patterns
 - 01-01: CLAUDE.md files serve dual purpose — write policy docs AND iCloud directory sync anchors (empty dirs don't sync)
 - 01-01: canvas/ subfolder gated behind Phase 4 research; documented in canvas/CLAUDE.md to prevent premature use
+- 01-02: Hook registered in settings.json (committed), not settings.local.json (machine-local) — ensures hook ships with the project
+- 01-02: Bash blocking in the hook is best-effort; Write/Edit are the primary enforcement points
 
 ### Pending Todos
 
@@ -59,6 +61,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14 14:41
-Stopped at: Completed 01-01-PLAN.md — 05_AI_Workspace/ directory structure created in vault
+Last session: 2026-03-14 07:37
+Stopped at: Completed 01-02-PLAN.md — vault-write-guard PreToolUse hook created and registered
 Resume file: None
