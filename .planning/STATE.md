@@ -68,6 +68,10 @@ Recent decisions affecting current work:
 - 03-04: FROM "" + WHERE type filter is the correct Dataview pattern for vault-external files (tasks/projects in project root)
 - 03-04: SORT before GROUP BY ensures intra-group ordering in Dataview queries
 - 03-04: file.mtime stale detection avoids complex cross-file JOINs for project staleness
+- 03-01: Skill files are instruction documents for Claude — no test harness needed; correctness is verified by reading the spec
+- 03-01: Morning brief uses static markdown tables (not Dataview) — brief is a snapshot at invocation time, not a live view
+- 03-01: Idempotent daily output: overwrite same-day file; daily-briefs are one-file-per-day
+- 03-01: Automation opportunities = actionable offers Claude can execute right now, not passive observations
 
 ### Pending Todos
 
@@ -81,6 +85,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14T23:08:56Z
-Stopped at: Completed 03-04-PLAN.md (Dataview Dashboards)
+Last session: 2026-03-15T00:08:48Z
+Stopped at: Completed 03-01-PLAN.md (Morning Briefing Skill) — Phase 3 all plans complete
 Resume file: None
