@@ -12,13 +12,13 @@ Requirements for the hybrid evolution. Each maps to roadmap phases.
 - [x] **FOUND-01**: AI Workspace folder (05_AI_Workspace) created in Obsidian vault with dashboards/, insights/, canvas/, daily-briefs/ subfolders and CLAUDE.md write rules
 - [x] **FOUND-02**: PreToolUse hook that blocks Claude from writing to human PARA folders (01-04), exits with code 2 and explanation on violation
 - [x] **FOUND-03**: Canonical YAML frontmatter schema document for people, projects, and tasks with Dataview-compatible field names
-- [ ] **FOUND-04**: Claude Code persistent memory system initialized with user profile, vault conventions, preferences, and reference pointers
+- [x] **FOUND-04**: Claude Code persistent memory system initialized with user profile, vault conventions, preferences, and reference pointers
 
 ### Daily Workflow
 
 - [ ] **DAILY-01**: Morning briefing skill that generates comprehensive daily briefing (overdue tasks, due today, follow-ups, calendar, automation opportunities) and outputs to 05_AI_Workspace/daily-briefs/
 - [ ] **DAILY-02**: End-of-day update skill that syncs tasks, refreshes dashboards, captures session learnings to Claude Code memory
-- [ ] **DAILY-03**: Session hooks — SessionStart surfaces stale tasks and upcoming deadlines, SessionEnd triggers dashboard refresh
+- [x] **DAILY-03**: Session hooks — SessionStart surfaces stale tasks and upcoming deadlines, SessionEnd triggers dashboard refresh
 - [ ] **DAILY-04**: Enhanced /new-task command with Dataview-compatible rich metadata (due, priority, project, domain, context tags)
 
 ### Proactive Layer
@@ -60,10 +60,10 @@ Deferred to future milestone. Tracked but not in current roadmap.
 | FOUND-01 | Phase 1 | Complete |
 | FOUND-02 | Phase 1 | Complete |
 | FOUND-03 | Phase 1 | Complete |
-| FOUND-04 | Phase 2 | Pending |
+| FOUND-04 | Phase 2 | Complete |
 | DAILY-01 | Phase 3 | Pending |
 | DAILY-02 | Phase 3 | Pending |
-| DAILY-03 | Phase 2 | Pending |
+| DAILY-03 | Phase 2 | Complete |
 | DAILY-04 | Phase 3 | Pending |
 | PROACT-01 | Phase 4 | Pending |
 | PROACT-02 | Phase 4 | Pending |
