@@ -5,7 +5,7 @@
 See: .planning/PROJECT.md (updated 2026-03-14)
 
 **Core value:** Claude Code knows me deeply across sessions and proactively surfaces what matters
-**Current focus:** Phase 1 — Foundation (COMPLETE)
+**Current focus:** Phase 2 — Memory and Session Context
 
 ## Current Position
 
@@ -60,7 +60,7 @@ None yet.
 
 - Phase 4 (Canvas): Research flagged LOW confidence on Obsidian Canvas file write patterns from Claude Code skills. Validate Canvas JSON interaction before building the visual weekly review skill. Documented in canvas/CLAUDE.md.
 - Phase 3 (Dataview iOS): Dashboard notes used on mobile must be tested on iOS before Phase 3 ships — known macOS/iOS query inconsistencies exist.
-- 01-03 (Human verify): Dataview dashboard rendering must be manually verified in Obsidian — confirm both query blocks render and Dataview plugin is enabled.
+- 01-03 (Human verify): ✓ Dataview dashboard rendering verified in Obsidian (2026-03-14).
 
 ## Session Continuity
 

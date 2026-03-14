@@ -9,9 +9,9 @@ Requirements for the hybrid evolution. Each maps to roadmap phases.
 
 ### Foundation
 
-- [ ] **FOUND-01**: AI Workspace folder (05_AI_Workspace) created in Obsidian vault with dashboards/, insights/, canvas/, daily-briefs/ subfolders and CLAUDE.md write rules
-- [ ] **FOUND-02**: PreToolUse hook that blocks Claude from writing to human PARA folders (01-04), exits with code 2 and explanation on violation
-- [ ] **FOUND-03**: Canonical YAML frontmatter schema document for people, projects, and tasks with Dataview-compatible field names
+- [x] **FOUND-01**: AI Workspace folder (05_AI_Workspace) created in Obsidian vault with dashboards/, insights/, canvas/, daily-briefs/ subfolders and CLAUDE.md write rules
+- [x] **FOUND-02**: PreToolUse hook that blocks Claude from writing to human PARA folders (01-04), exits with code 2 and explanation on violation
+- [x] **FOUND-03**: Canonical YAML frontmatter schema document for people, projects, and tasks with Dataview-compatible field names
 - [ ] **FOUND-04**: Claude Code persistent memory system initialized with user profile, vault conventions, preferences, and reference pointers
 
 ### Daily Workflow
@@ -57,9 +57,9 @@ Deferred to future milestone. Tracked but not in current roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FOUND-01 | Phase 1 | Pending |
-| FOUND-02 | Phase 1 | Pending |
-| FOUND-03 | Phase 1 | Pending |
+| FOUND-01 | Phase 1 | Complete |
+| FOUND-02 | Phase 1 | Complete |
+| FOUND-03 | Phase 1 | Complete |
 | FOUND-04 | Phase 2 | Pending |
 | DAILY-01 | Phase 3 | Pending |
 | DAILY-02 | Phase 3 | Pending |

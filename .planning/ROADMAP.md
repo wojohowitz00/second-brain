@@ -10,7 +10,7 @@ This milestone evolves the existing Second Brain into a proactive AI operating s
 
 ## Phases
 
-- [ ] **Phase 1: Foundation** — AI workspace folder, write boundary enforcement, and canonical YAML schema
+- [x] **Phase 1: Foundation** — AI workspace folder, write boundary enforcement, and canonical YAML schema ✓ 2026-03-14
 - [ ] **Phase 2: Memory and Session Context** — Persistent cross-session memory and session lifecycle hooks
 - [ ] **Phase 3: Core Daily Skills** — Morning briefing, end-of-day update, enhanced task creation, and dashboards
 - [ ] **Phase 4: Proactive Layer** — Insights detection, alert routing, and visual canvas review
