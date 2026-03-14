@@ -16,16 +16,16 @@ Requirements for the hybrid evolution. Each maps to roadmap phases.
 
 ### Daily Workflow
 
-- [ ] **DAILY-01**: Morning briefing skill that generates comprehensive daily briefing (overdue tasks, due today, follow-ups, calendar, automation opportunities) and outputs to 05_AI_Workspace/daily-briefs/
-- [ ] **DAILY-02**: End-of-day update skill that syncs tasks, refreshes dashboards, captures session learnings to Claude Code memory
+- [x] **DAILY-01**: Morning briefing skill that generates comprehensive daily briefing (overdue tasks, due today, follow-ups, calendar, automation opportunities) and outputs to 05_AI_Workspace/daily-briefs/
+- [x] **DAILY-02**: End-of-day update skill that syncs tasks, refreshes dashboards, captures session learnings to Claude Code memory
 - [x] **DAILY-03**: Session hooks — SessionStart surfaces stale tasks and upcoming deadlines, SessionEnd triggers dashboard refresh
-- [ ] **DAILY-04**: Enhanced /new-task command with Dataview-compatible rich metadata (due, priority, project, domain, context tags)
+- [x] **DAILY-04**: Enhanced /new-task command with Dataview-compatible rich metadata (due, priority, project, domain, context tags)
 
 ### Proactive Layer
 
 - [ ] **PROACT-01**: Insights skill that performs weekly vault-wide analysis detecting drift from goals, neglected areas, overcommitment, dormant projects
 - [ ] **PROACT-02**: Alert routing system that delivers urgent items via Slack channel post + macOS notification + Obsidian daily note append
-- [ ] **PROACT-03**: Dataview dashboard notes in 05_AI_Workspace/dashboards/ for productivity overview (tasks by status/priority) and project status (active projects with health indicators)
+- [x] **PROACT-03**: Dataview dashboard notes in 05_AI_Workspace/dashboards/ for productivity overview (tasks by status/priority) and project status (active projects with health indicators)
 - [ ] **PROACT-04**: Canvas visual weekly review board in 05_AI_Workspace/canvas/ showing projects, tasks, and domains in spatial layout
 
 ## v3 Requirements
@@ -61,13 +61,13 @@ Deferred to future milestone. Tracked but not in current roadmap.
 | FOUND-02 | Phase 1 | Complete |
 | FOUND-03 | Phase 1 | Complete |
 | FOUND-04 | Phase 2 | Complete |
-| DAILY-01 | Phase 3 | Pending |
-| DAILY-02 | Phase 3 | Pending |
+| DAILY-01 | Phase 3 | Complete |
+| DAILY-02 | Phase 3 | Complete |
 | DAILY-03 | Phase 2 | Complete |
-| DAILY-04 | Phase 3 | Pending |
+| DAILY-04 | Phase 3 | Complete |
 | PROACT-01 | Phase 4 | Pending |
 | PROACT-02 | Phase 4 | Pending |
-| PROACT-03 | Phase 3 | Pending |
+| PROACT-03 | Phase 3 | Complete |
 | PROACT-04 | Phase 4 | Pending |
 
 **Coverage:**

@@ -12,7 +12,7 @@ This milestone evolves the existing Second Brain into a proactive AI operating s
 
 - [x] **Phase 1: Foundation** — AI workspace folder, write boundary enforcement, and canonical YAML schema ✓ 2026-03-14
 - [x] **Phase 2: Memory and Session Context** — Persistent cross-session memory and session lifecycle hooks ✓ 2026-03-14
-- [ ] **Phase 3: Core Daily Skills** — Morning briefing, end-of-day update, enhanced task creation, and dashboards
+- [x] **Phase 3: Core Daily Skills** — Morning briefing, end-of-day update, enhanced task creation, and dashboards ✓ 2026-03-15
 - [ ] **Phase 4: Proactive Layer** — Insights detection, alert routing, and visual canvas review
 
 ## Phase Details
@@ -76,13 +76,13 @@ Plans:
 3. Creating a task via `/new-task` produces a note with Dataview-compatible frontmatter fields (due, priority, project, domain, context tags) that appears correctly in the productivity dashboard Dataview queries
 4. Two live Dataview dashboard notes exist in `05_AI_Workspace/dashboards/` — one showing tasks by status and priority, one showing active projects with health indicators — and both render correctly in Obsidian
 
-**Plans:** TBD
+**Plans:** 4 plans
 
 Plans:
-- [ ] 03-01: Build morning briefing skill writing to `05_AI_Workspace/daily-briefs/`
-- [ ] 03-02: Build end-of-day update skill with memory capture
-- [ ] 03-03: Enhance `/new-task` with Dataview-compatible rich metadata
-- [ ] 03-04: Build productivity and project status dashboard notes with Dataview queries
+- [x] 03-01-PLAN.md — Morning briefing skill with orient-first structure
+- [x] 03-02-PLAN.md — EOD update: SessionEnd hook extension + interactive reflection skill
+- [x] 03-03-PLAN.md — Enhanced /new-task with rich metadata and quick capture
+- [x] 03-04-PLAN.md — Dataview dashboards for tasks and project health
 
 ---
 
@@ -115,7 +115,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete | 2026-03-14 |
 | 2. Memory and Session Context | 2/2 | Complete | 2026-03-14 |
-| 3. Core Daily Skills | 0/4 | Not started | - |
+| 3. Core Daily Skills | 4/4 | Complete | 2026-03-15 |
 | 4. Proactive Layer | 0/3 | Not started | - |
 
 ---
