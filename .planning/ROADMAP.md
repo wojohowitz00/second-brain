@@ -31,12 +31,12 @@ This milestone evolves the existing Second Brain into a proactive AI operating s
 3. A canonical YAML frontmatter schema document exists defining field names, types, and example values for people, project, and task notes — and it is referenced from the vault CLAUDE.md
 4. A skeleton Dataview dashboard note exists in `05_AI_Workspace/dashboards/` that successfully renders at least one live query (tasks by status)
 
-**Plans:** TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 01-01: Create AI workspace folder structure and write policy
-- [ ] 01-02: Implement PreToolUse hook for vault write boundary enforcement
-- [ ] 01-03: Define and publish canonical YAML frontmatter schema
+- [x] 01-01-PLAN.md — Create AI workspace folder structure and write policy
+- [x] 01-02-PLAN.md — Implement PreToolUse hook for vault write boundary enforcement
+- [x] 01-03-PLAN.md — Define and publish canonical YAML frontmatter schema
 
 ---
 
@@ -54,11 +54,11 @@ Plans:
 3. When a Claude Code session ends, dashboard notes in `05_AI_Workspace/dashboards/` are refreshed automatically without the user invoking a command
 4. After a context compaction event, critical vault conventions are re-injected so Claude does not lose working knowledge of the system
 
-**Plans:** TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 02-01: Initialize Claude Code memory structure with vault profile and preferences
-- [ ] 02-02: Implement SessionStart and SessionEnd hooks
+- [ ] 02-01-PLAN.md — Initialize Claude Code memory structure with vault profile and preferences
+- [ ] 02-02-PLAN.md — Implement SessionStart and SessionEnd hooks
 
 ---
 
@@ -113,7 +113,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/3 | Not started | - |
+| 1. Foundation | 3/3 | Complete | 2026-03-14 |
 | 2. Memory and Session Context | 0/2 | Not started | - |
 | 3. Core Daily Skills | 0/4 | Not started | - |
 | 4. Proactive Layer | 0/3 | Not started | - |
