@@ -11,17 +11,17 @@ See: .planning/PROJECT.md (updated 2026-03-14)
 
 Phase: 3 of 4 (Core Daily Skills)
 Plan: 4 of 4 in current phase
-Status: In progress — 03-04 complete
-Last activity: 2026-03-15 — Completed 03-04-PLAN.md: Dataview Dashboards (tasks-by-status + projects-health)
+Status: Phase 3 complete — all 4 plans executed
+Last activity: 2026-03-15 — Completed 03-01-PLAN.md: Morning Briefing Skill (daily-digest skill rewritten, /today command updated)
 
-Progress: [████████░░] 80% (8/10 total plans)
+Progress: [██████████] 100% (10/10 total plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
-- Average duration: ~2.0 minutes
-- Total execution time: ~8.7 minutes
+- Total plans completed: 7
+- Average duration: ~1.7 minutes
+- Total execution time: ~11.6 minutes
 
 **By Phase:**
 
@@ -61,6 +61,10 @@ Recent decisions affecting current work:
 - 03-02: Hook handles mechanical writes (timestamp only); EOD skill handles interactive reflection — clean separation of concerns
 - 03-02: Day Summary idempotent via grep check — multiple sessions same day produce at most one Day Summary header
 - 03-02: projects-health.md refresh added proactively to session-end.sh (Plan 03-04 creates the file)
+- 03-03: Default task status is `backlog` (not `active`) — tasks start unscheduled until user deliberately promotes them
+- 03-03: Omit fields with no signal — no empty values in frontmatter, cleaner notes and avoids Dataview null-matching edge cases
+- 03-03: Post-creation notes offer is exactly one prompt — no loop, preserves command velocity
+- 03-03: Quick mode takes title verbatim — no inference, no prompts, optimized for speed over richness
 - 03-04: FROM "" + WHERE type filter is the correct Dataview pattern for vault-external files (tasks/projects in project root)
 - 03-04: SORT before GROUP BY ensures intra-group ordering in Dataview queries
 - 03-04: file.mtime stale detection avoids complex cross-file JOINs for project staleness
