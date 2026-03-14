@@ -10,29 +10,29 @@ See: .planning/PROJECT.md (updated 2026-03-14)
 ## Current Position
 
 Phase: 2 of 4 (Memory and Session Context)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-03-14 — Completed 02-01-PLAN.md (Persistent Memory Initialization)
+Last activity: 2026-03-14 — Completed 02-02-PLAN.md (Session Lifecycle Hooks)
 
-Progress: [████░░░░░░] 33% (4/12 total plans)
+Progress: [█████░░░░░] 42% (5/12 total plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: ~2.1 minutes
-- Total execution time: ~7.5 minutes
+- Total plans completed: 5
+- Average duration: ~2.0 minutes
+- Total execution time: ~8.7 minutes
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 3/3 | ~6.5 min | ~2.2 min |
-| 02-memory-and-session-context | 1/3 | ~1 min | ~1 min |
+| 02-memory-and-session-context | 2/3 | ~2.2 min | ~1.1 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (4 min), 01-02 (79 sec), 01-03 (70 sec), 02-01 (1 min)
-- Trend: fast execution, accelerating
+- Last 5 plans: 01-02 (79 sec), 01-03 (70 sec), 02-01 (1 min), 02-02 (74 sec)
+- Trend: fast execution, consistently under 2 min
 
 *Updated after each plan completion*
 
@@ -55,6 +55,9 @@ Recent decisions affecting current work:
 - 02-01: MEMORY.md kept under 200 lines (45 lines) — Claude Code auto-load limit
 - 02-01: Post-compaction re-injection requires no additional code; CLAUDE.md + MEMORY.md both reloaded automatically after compaction
 - 02-01: MEMORY.md stores learned facts; CLAUDE.md stores rules — complementary, not overlapping
+- 02-02: Session hooks registered in global ~/.claude/settings.json (not project-level), consistent with bd prime pattern
+- 02-02: SessionStart plain-text output (not JSON) — injected directly into Claude context, clearest for model comprehension
+- 02-02: Silent exit 0 when no items to report — avoids context noise when tasks are healthy
 
 ### Pending Todos
 
@@ -68,6 +71,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14 08:27
-Stopped at: Completed 02-01-PLAN.md — MEMORY.md seeded at Claude Code auto-memory path; cross-session context initialized
+Last session: 2026-03-14 08:28
+Stopped at: Completed 02-02-PLAN.md — SessionStart/SessionEnd hooks created and registered in global settings.json
 Resume file: None
