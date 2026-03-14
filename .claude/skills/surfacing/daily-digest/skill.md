@@ -1,101 +1,147 @@
-# Daily Digest
+# Morning Briefing Skill
 
 ## Description
-Generate a morning digest with today's tasks, overdue items, in-progress ideas, automation opportunities, and items Claude can handle autonomously. Output to Obsidian daily file and optionally Slack DM.
+
+Generate a structured daily brief that orients the user with summary counts before listing details. Write a dated note to the vault and inject a conversational summary into session context.
+
+This skill is the daily situation report: orient first, then act.
 
 ## Triggers
-- Part of /today command
-- "daily digest"
-- "what's on for today"
-- "morning briefing"
-- "what do I have today"
 
-## Dependencies
-- Folder structure with tasks/, projects/, ideas/, people/, admin/
-- Template structure with YAML frontmatter
-- Optional: Slack API for DM delivery
+- `/today`
+- "morning briefing"
+- "what's on today"
+- "daily brief"
+
+## Data Sources
+
+Read directly from the project root (not the vault):
+
+- `tasks/*.md` — extract `due_date`, `status`, `project`, `title` from frontmatter (skip README.md)
+- `people/*.md` — extract `follow_up_date`, `name` from frontmatter (skip README.md)
+- `projects/*.md` — extract `status`, `health`, `next_action`, `name` from frontmatter (skip README.md)
+
+**Graceful empty handling:** If a directory has only README.md or no files, skip that section entirely. Do not error or show "All clear!" placeholders.
 
 ## Workflow
 
-### 1. Gather Data
+### 1. Read Data
 
-Query vault for:
-- **Tasks due today:** Search `tasks/` for frontmatter `due_date` = today
-- **Overdue tasks:** Search `tasks/` for `due_date` < today AND `status` != done
-- **In-progress ideas:** Search `ideas/` for `status` = active or in-progress
-- **People follow-ups:** Search `people/` for non-empty `follow_ups`
-- **Admin due today:** Search `admin/` for `due_date` = today
-- **Active projects:** Search `projects/` for `status` = active, extract `next_action`
-- **Research digest:** Check `research/digests/` for today's file
+Scan the three directories. For each `.md` file (skip README.md):
+- Parse YAML frontmatter
+- Skip tasks with `status: done`
+- Collect overdue tasks: `due_date` < today AND `status` != done
+- Collect due today: `due_date` = today AND `status` != done
+- Collect upcoming: `due_date` within next 7 days (excluding today) AND `status` != done
+- Collect follow-ups: `follow_up_date` <= today + 7 days
+- Collect active projects: `status: active`
 
-### 2. Categorize by Automation Potential
+### 2. Write Vault Note
 
-**Automate** (Claude completes without human input):
-- Research and information gathering
-- First drafts of documents/emails
-- Data summarization
-- File organization
+Write to: `05_AI_Workspace/daily-briefs/YYYY-MM-DD-daily-brief.md`
 
-**Augment** (Claude helps human):
-- Writing review and critique
-- Analysis and synthesis
-- Brainstorming sessions
+Use today's date in the filename. If the file exists, overwrite it (daily briefs are idempotent — one file per day).
 
-**Human only:**
-- Creative work user wants to own
-- Relationship conversations
-- Strategic decisions
-- Physical actions
-
-### 3. Generate Digest
-
-Write to `daily/[YYYY-MM-DD].md`:
-
-```markdown
-# Today: [YYYY-MM-DD, Day of Week]
-
-## Overdue ([count])
-- [ ] [task] *(due [date], [X] days ago)* #tags
-
-## Due Today ([count])
-- [ ] [task] #tags
-
-## Claude Can Handle
-Say "do [number]" to start any:
-1. [ ] [task] — I'd [specific action]
-
-## Let's Do Together
-1. [ ] [task] — I can help by [how]
-
-## Active Projects
-| Project | Next Action |
-|---------|-------------|
-| [name] | [next_action] |
-
-## Ideas in Progress
-- [ ] [idea title] — [oneliner]
-
-## People Follow-ups
-- [ ] **[Person]**: [follow-up item]
-
-## Research
-[Link to today's digest or "No new research today"]
+**Frontmatter:**
+```yaml
+---
+type: daily-brief
+date: YYYY-MM-DD
+generated_by: claude
+---
 ```
 
-### 4. Prompt for Action
+Note: `date` must be bare ISO format — no quotes. Quoted dates break Dataview date queries.
 
-End with:
-"Good morning! Here's your day. Want me to start on any items I can handle, or dive into something together?"
+**Note structure:**
+
+```markdown
+# Daily Brief — YYYY-MM-DD
+
+## At a Glance
+X tasks due today · Y overdue · Z follow-ups needing attention
+
+## Overdue Tasks
+| Task | Status | Project | Due |
+|------|--------|---------|-----|
+| ... | ... | ... | ... |
+
+(sorted oldest first; omit entire section if no overdue tasks)
+
+## Due Today
+| Task | Status | Project |
+|------|--------|---------|
+| ... | ... | ... |
+
+(omit entire section if nothing due today)
+
+## Upcoming (Next 7 Days)
+| Task | Status | Project | Due |
+|------|--------|---------|-----|
+| ... | ... | ... | ... |
+
+(omit entire section if no upcoming tasks)
+
+## Follow-ups
+| Person | Follow-up Date |
+|--------|----------------|
+| ... | ... |
+
+(people where follow_up_date <= today + 7 days; omit section if none)
+
+## Active Projects
+| Project | Health | Next Action |
+|---------|--------|-------------|
+| ... | ... | ... |
+
+(projects where status = active; omit section if none)
+
+## Automation Opportunities
+- [Actionable offers based on current task/people state]
+
+Examples of good automation opportunities:
+- "3 tasks marked `waiting` — want me to draft follow-ups?"
+- "2 tasks have no due date — want me to help prioritize?"
+- "Task 'X' is 5 days overdue — want me to reschedule it?"
+
+Only list opportunities where Claude could act RIGHT NOW in this session.
+Omit this section entirely if no actionable opportunities exist.
+
+---
+<!-- Day Summary will be appended by session-end hook -->
+```
+
+### 3. Inject Session Summary
+
+After writing the vault note, provide a conversational summary inline:
+
+1. Lead with the "At a Glance" counts
+2. List the top 3–5 most urgent items (overdue first, then due today)
+3. State automation opportunities as offers ("Want me to...")
+4. End with: "Want me to start on any of these, or dive into something else?"
+
+Keep this session summary scannable — it should orient, not overwhelm.
 
 ## Output Constraints
 
-- Overdue section: Show ALL items, sorted oldest first
-- Due today: Show ALL items
-- Claude can handle: Max 5 items
-- Total digest: Scannable on phone (~200 words for main sections)
+- Overdue section: ALL items, sorted oldest first
+- Due today: ALL items
+- Upcoming: items within next 7 days only
+- Follow-ups: people where `follow_up_date` is within 7 days of today
+- Active projects: projects with `status: active` only
+- Session summary: top 3–5 most urgent items
+
+## Anti-Patterns
+
+- Do NOT write to `daily/` (that folder is deprecated)
+- Do NOT send a Slack DM (deferred to a later phase)
+- Do NOT use pre-computed Dataview queries in the vault note (write static markdown tables)
+- Do NOT include tasks with `status: done`
+- Do NOT quote dates in frontmatter (`date: "2026-03-14"` is wrong; `date: 2026-03-14` is correct)
 
 ## Error Handling
 
-- If a folder doesn't exist: Skip that section, note in output
-- If no items in a category: Show "[category]: All clear!"
-- If frontmatter is malformed: Log warning, skip that file
+- Missing or malformed frontmatter: skip that file, continue
+- Directory doesn't exist: skip that section entirely
+- Directory contains only README.md: skip that section entirely
+- File for today already exists: overwrite it
