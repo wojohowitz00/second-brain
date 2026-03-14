@@ -1,212 +1,125 @@
-# Roadmap: Second Brain
+# Roadmap: Hybrid Brain OS
 
 ## Overview
 
-Transform existing Slack-to-Obsidian backend into a standalone macOS app with local LLM classification. The journey moves from validating table stakes, through adding dynamic vault discovery and Ollama-based classification, to building menu bar presence and packaging for distribution. Critical validation checkpoint at Phase 3 (Ollama connection) before investing in UI/packaging.
+This milestone evolves the existing Second Brain into a proactive AI operating system. Starting from a stable v1.0 foundation (Python backend, Obsidian vault, 9 Claude Code skills), four phases add the architectural layer that makes the system self-aware: a protected AI workspace, cross-session memory, daily workflow skills, and a proactive pattern-detection layer. Each phase builds directly on the previous — the write boundary must exist before skills write, memory must exist before skills are context-aware, daily skills must run before proactive detection has signal to analyze.
+
+## Milestones
+
+- 🚧 **v2.0 Hybrid Brain OS** — Phases 1-4 (in progress)
 
 ## Phases
 
-**Phase Numbering:**
-- Integer phases (1, 2, 3): Planned milestone work
-- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
-
-Decimal phases appear between their surrounding integers in numeric order.
-
-- [x] **Phase 1: Foundation Validation** - Verify existing backend still works ✓
-- [x] **Phase 2: Vault Scanner** - Dynamic domain/PARA/subject discovery ✓
-- [x] **Phase 2.5: Task Management** - Kanban/Todo via Slack with status transitions ✓
-- [x] **Phase 3: Ollama Connection** - Local LLM integration and health checks ✓
-- [x] **Phase 4: Basic Classification** - Single-level domain classification ✓
-- [x] **Phase 5: Multi-Level Classification** - Complete PARA/subject/category pipeline ✓
-- [x] **Phase 6: Processing Integration** - Wire classification to message processor ✓
-- [x] **Phase 7: Menu Bar Interface** - macOS UI layer with status display ✓
-- [x] **Phase 8: First-Run Wizard** - Setup UX for Ollama and vault ✓
-- [x] **Phase 9: Packaging** - .pkg installer for distribution ✓
-- [ ] **Phase 10: Swift Migration** - Native rewrite for performance and UX
+- [ ] **Phase 1: Foundation** — AI workspace folder, write boundary enforcement, and canonical YAML schema
+- [ ] **Phase 2: Memory and Session Context** — Persistent cross-session memory and session lifecycle hooks
+- [ ] **Phase 3: Core Daily Skills** — Morning briefing, end-of-day update, enhanced task creation, and dashboards
+- [ ] **Phase 4: Proactive Layer** — Insights detection, alert routing, and visual canvas review
 
 ## Phase Details
 
-### Phase 10: Swift Migration
-**Goal**: Refactor application to native Swift/SwiftUI for instant startup, low memory usage, and superior macOS integration.
-**Depends on**: Decision to migrate (Strategy A)
-**Requirements**: MIGRATION-01 (Native Performance), MIGRATION-02 (Feature Parity)
+### Phase 1: Foundation
+
+**Goal:** The vault has a protected AI writing area and a canonical data schema, making every subsequent AI write safe and queryable.
+
+**Depends on:** Nothing (first phase)
+
+**Requirements:** FOUND-01, FOUND-02, FOUND-03
+
 **Success Criteria** (what must be TRUE):
-  1. App startup time < 0.5s
-  2. Idle memory usage < 20MB
-  3. Feature parity with Python v1.0 (Ollama classification, file writing, menu bar)
-  4. Native settings window and permissions handling
-**Plans**: 1 plan (initial)
+1. An `05_AI_Workspace/` folder exists in the Obsidian vault with `dashboards/`, `insights/`, `canvas/`, and `daily-briefs/` subfolders, each containing a `CLAUDE.md` write policy
+2. Any attempt by Claude to write a file into folders `01_`, `02_`, `03_`, or `04_` is blocked automatically before the write occurs, with an explanation of the violation
+3. A canonical YAML frontmatter schema document exists defining field names, types, and example values for people, project, and task notes — and it is referenced from the vault CLAUDE.md
+4. A skeleton Dataview dashboard note exists in `05_AI_Workspace/dashboards/` that successfully renders at least one live query (tasks by status)
+
+**Plans:** TBD
 
 Plans:
-- [x] 10-01-PLAN.md — Project initialization and core backend porting (Ollama, Vault)
-- [x] 10-02-PLAN.md — Menu Bar UI and Ollama integration
-- [x] 10-02-PLAN.md — Menu Bar UI and Ollama integration
-- [x] 10-03-PLAN.md — Settings UI, Vault Configuration, and Model Selection
-- [x] 10-03-PLAN.md — Settings UI, Vault Configuration, and Model Selection
-- [x] 10-04-PLAN.md — Slack Integration and Core Processing Loop
-- [x] 10-05-PLAN.md — App Packaging, Auto-Launch, and Prompt Refinement
-- [ ] 11-01-PLAN.md — Comprehensive Testing Suite (Integration, UI, Coverage)
-- [ ] 13-01-PLAN.md — Data Layer (GRDB + SQLite + FTS5)
-- [ ] 13-02-PLAN.md — Main Window + Dashboard
-- [ ] 13-03-PLAN.md — Correction Mechanism
-- [ ] 13-04-PLAN.md — Config Wizard + Rich Search
+- [ ] 01-01: Create AI workspace folder structure and write policy
+- [ ] 01-02: Implement PreToolUse hook for vault write boundary enforcement
+- [ ] 01-03: Define and publish canonical YAML frontmatter schema
 
+---
 
-### Phase 1: Foundation Validation
-**Goal**: Existing backend capabilities are verified working
-**Depends on**: Nothing (first phase)
-**Requirements**: None (validates existing implementation)
+### Phase 2: Memory and Session Context
+
+**Goal:** Claude knows who I am at the start of every session and automatically surfaces stale work without being asked.
+
+**Depends on:** Phase 1
+
+**Requirements:** FOUND-04, DAILY-03
+
 **Success Criteria** (what must be TRUE):
-  1. Backend can fetch messages from Slack channel
-  2. Backend can create .md files with frontmatter in test vault
-  3. Backend can process fix: corrections
-  4. State tracking correctly prevents duplicate processing
-**Plans**: 2 plans
+1. Claude Code memory is initialized with vault conventions, user preferences, and reference pointers — and this context is available at the start of a fresh session without manual re-loading
+2. When a new Claude Code session starts, stale tasks (overdue or untouched for 7+ days) and upcoming deadlines are surfaced automatically in the session context
+3. When a Claude Code session ends, dashboard notes in `05_AI_Workspace/dashboards/` are refreshed automatically without the user invoking a command
+4. After a context compaction event, critical vault conventions are re-injected so Claude does not lose working knowledge of the system
+
+**Plans:** TBD
 
 Plans:
-- [x] 01-01-PLAN.md - Unit tests for schema validation and state management ✓
-- [x] 01-02-PLAN.md - Integration tests for Slack, file creation, and fix handling ✓
+- [ ] 02-01: Initialize Claude Code memory structure with vault profile and preferences
+- [ ] 02-02: Implement SessionStart and SessionEnd hooks
 
-### Phase 2: Vault Scanner
-**Goal**: App dynamically discovers vault structure for classification vocabulary
-**Depends on**: Phase 1
-**Requirements**: VAULT-01, VAULT-02, VAULT-03, VAULT-04, VAULT-05
+---
+
+### Phase 3: Core Daily Skills
+
+**Goal:** The daily rhythm of starting work, capturing tasks, and closing out the day is fully automated and Dataview-queryable.
+
+**Depends on:** Phase 2
+
+**Requirements:** DAILY-01, DAILY-02, DAILY-04, PROACT-03
+
 **Success Criteria** (what must be TRUE):
-  1. Scanner discovers all three domain folders (Personal, CCBH, Just Value)
-  2. Scanner discovers PARA subfolders within each domain
-  3. Scanner discovers subject folders within each PARA section
-  4. Scanner caches structure with 6-hour TTL and exposes as vocabulary
-  5. User can manually trigger rescan (prep for future menu bar integration)
-**Plans**: 2 plans
+1. Invoking the morning briefing skill (or having it triggered by session start) produces a dated briefing note in `05_AI_Workspace/daily-briefs/` covering overdue tasks, items due today, follow-ups needing attention, and automation opportunities
+2. Invoking the end-of-day update skill syncs task statuses, refreshes dashboards, and appends a session learnings entry to Claude Code memory
+3. Creating a task via `/new-task` produces a note with Dataview-compatible frontmatter fields (due, priority, project, domain, context tags) that appears correctly in the productivity dashboard Dataview queries
+4. Two live Dataview dashboard notes exist in `05_AI_Workspace/dashboards/` — one showing tasks by status and priority, one showing active projects with health indicators — and both render correctly in Obsidian
+
+**Plans:** TBD
 
 Plans:
-- [x] 02-01-PLAN.md - Core vault scanner with three-level traversal (TDD) ✓
-- [x] 02-02-PLAN.md - Cache layer with TTL and vocabulary extraction (TDD) ✓
+- [ ] 03-01: Build morning briefing skill writing to `05_AI_Workspace/daily-briefs/`
+- [ ] 03-02: Build end-of-day update skill with memory capture
+- [ ] 03-03: Enhance `/new-task` with Dataview-compatible rich metadata
+- [ ] 03-04: Build productivity and project status dashboard notes with Dataview queries
 
-### Phase 3: Ollama Connection
-**Goal**: App can communicate with local Ollama instance
-**Depends on**: Phase 2
-**Requirements**: CLASS-05
+---
+
+### Phase 4: Proactive Layer
+
+**Goal:** The system proactively surfaces patterns, alerts, and visual overviews — the user receives insight without asking.
+
+**Depends on:** Phase 3
+
+**Requirements:** PROACT-01, PROACT-02, PROACT-04
+
 **Success Criteria** (what must be TRUE):
-  1. App detects if Ollama is running
-  2. App can load specified model (Llama 3.2 3B)
-  3. App can send prompt and receive response
-  4. App handles Ollama errors gracefully (not running, model missing, timeout)
-**Plans**: 1 plan
+1. Running the insights skill performs a vault-wide analysis and produces a report in `05_AI_Workspace/insights/` that identifies at least one of: goal drift, neglected areas, overcommitment, or dormant projects — with specific note references
+2. An urgent item (overdue task, stale follow-up) triggers a notification delivered via all three channels: a Slack channel post, a macOS system notification, and an append to the Obsidian daily note
+3. A Canvas visual weekly review board exists in `05_AI_Workspace/canvas/` showing active projects, open tasks, and domains in a spatial layout — and it opens correctly in Obsidian's Canvas view
+4. Alert volume is bounded — no more than 5 alert items surface in a single morning briefing, preventing alert fatigue from the start
+
+**Plans:** TBD
 
 Plans:
-- [x] 03-01-PLAN.md - OllamaClient with health checks, chat, and error handling (TDD) ✓
+- [ ] 04-01: Build insights skill with vault-wide pattern detection
+- [ ] 04-02: Implement alert routing to Slack, macOS notifications, and Obsidian daily note
+- [ ] 04-03: Build Canvas visual weekly review template and generation skill
 
-**VALIDATION CHECKPOINT:** Do not proceed to UI/packaging until Ollama classification quality is verified.
-
-### Phase 4: Basic Classification
-**Goal**: App classifies messages into domains using Ollama
-**Depends on**: Phase 3
-**Requirements**: CLASS-01
-**Success Criteria** (what must be TRUE):
-  1. Given a message, app returns valid domain (Personal, CCBH, Just Value)
-  2. Classification uses vault vocabulary from scanner
-  3. Invalid/unexpected responses are caught and logged
-  4. Classification completes within 30 seconds (cold start) or 5 seconds (warm)
-**Plans**: 1 plan
-
-Plans:
-- [ ] 04-01-PLAN.md - DomainClassifier with LLM + vocabulary integration (TDD)
-
-### Phase 5: Multi-Level Classification
-**Goal**: App completes full classification pipeline (domain → PARA → subject → category)
-**Depends on**: Phase 3 (Ollama), Phase 2 (VaultScanner)
-**Requirements**: CLASS-01, CLASS-02, CLASS-03, CLASS-04, CLASS-06
-**Success Criteria** (what must be TRUE):
-  1. App classifies domain (Personal, CCBH, Just Value)
-  2. App classifies PARA type (Projects/Areas/Resources/Archives)
-  3. App classifies subject within PARA folder
-  4. App assigns category tag to message
-  5. Classification uses vault vocabulary from scanner for all levels
-  6. Full pipeline produces valid domain/para/subject/category tuple
-**Plans**: 1 plan
-
-Plans:
-- [x] 05-01-PLAN.md - MessageClassifier with single-shot multi-level classification (TDD) ✓
-
-### Phase 6: Processing Integration
-**Goal**: Classified messages become .md files in correct vault locations
-**Depends on**: Phase 5
-**Requirements**: PROC-01, PROC-02, PROC-03, PROC-04
-**Success Criteria** (what must be TRUE):
-  1. App processes backlog on startup
-  2. App polls Slack every 2 minutes while running
-  3. Created .md files have domain/para/subject/category in frontmatter
-  4. Files are placed in correct vault folder path (domain/PARA/subject/)
-  5. End-to-end: Slack message → classified → filed in vault within one poll cycle
-**Plans**: 3 plans
-
-Plans:
-- [ ] 06-01-PLAN.md — File writer module with PARA-aware file creation (TDD)
-- [ ] 06-02-PLAN.md — Refactor process_inbox.py to use MessageClassifier
-- [ ] 06-03-PLAN.md — Polling loop with graceful shutdown + integration tests
-
-### Phase 7: Menu Bar Interface
-**Goal**: User has macOS menu bar presence showing status and controls
-**Depends on**: Phase 6
-**Requirements**: UI-01, UI-02, UI-03, UI-04, UI-05
-**Success Criteria** (what must be TRUE):
-  1. Menu bar icon appears showing sync status (idle/syncing/error)
-  2. User can trigger manual sync from menu bar
-  3. User can view recent activity (last 5 filed notes)
-  4. User can quit app from menu bar
-  5. System notification appears when new notes are filed
-**Plans**: 2 plans
-
-Plans:
-- [ ] 07-01-PLAN.md - MenuBarApp with rumps, status icons, sync, activity (TDD)
-- [ ] 07-02-PLAN.md - macOS notifications when notes are filed
-
-### Phase 8: First-Run Wizard
-**Goal**: New users can complete setup without CLI knowledge
-**Depends on**: Phase 7
-**Requirements**: SETUP-01, SETUP-02, SETUP-03, SETUP-04, SETUP-05, SETUP-06
-**Success Criteria** (what must be TRUE):
-  1. On first launch, wizard checks if Ollama is installed
-  2. If missing, wizard guides download with clickable link
-  3. Wizard checks if required model is available
-  4. If missing, wizard triggers model download with progress indicator
-  5. Wizard allows user to configure vault path (with default)
-  6. Wizard validates Slack credentials before completion
-**Plans**: 1 plan
-
-Plans:
-- [x] 08-01-PLAN.md - SetupWizard with step-based first-run flow (TDD) ✓
-
-### Phase 9: Packaging
-**Goal**: App is distributed as .pkg installer for non-technical users
-**Depends on**: Phase 8
-**Requirements**: DIST-01, DIST-02, DIST-03
-**Success Criteria** (what must be TRUE):
-  1. .pkg installer builds from Python codebase
-  2. Installer places app in /Applications
-  3. User can optionally enable launch on login
-  4. Installed app runs without Python environment visible to user
-**Plans**: 2 plans
-
-Plans:
-- [ ] 09-01-PLAN.md — py2app bundle creation (setup.py + build script)
-- [ ] 09-02-PLAN.md — .pkg installer and LaunchAgent setup
+---
 
 ## Progress
 
-**Execution Order:**
-Phases execute in numeric order: 1 → 2 → 2.5 → 3 → 4 → 5 → 6 → 7 → 8 → 9
-
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation Validation | 2/2 | Complete ✓ | 2026-01-31 |
-| 2. Vault Scanner | 2/2 | Complete ✓ | 2026-01-31 |
-| 2.5. Task Management | 2/2 | Complete ✓ | 2026-01-31 |
-| 3. Ollama Connection | 1/1 | Complete ✓ | 2026-01-31 |
-| 4. Basic Classification | 0/TBD | Not started | - |
-| 5. Multi-Level Classification | 1/1 | Complete ✓ | 2026-01-31 |
-| 6. Processing Integration | 3/3 | Complete ✓ | 2026-01-31 |
-| 7. Menu Bar Interface | 2/2 | Complete ✓ | 2026-01-31 |
-| 8. First-Run Wizard | 1/1 | Complete ✓ | 2026-01-31 |
-| 9. Packaging | 2/2 | Complete ✓ | 2026-01-31 |
+| 1. Foundation | 0/3 | Not started | - |
+| 2. Memory and Session Context | 0/2 | Not started | - |
+| 3. Core Daily Skills | 0/4 | Not started | - |
+| 4. Proactive Layer | 0/3 | Not started | - |
+
+---
+
+*Roadmap created: 2026-03-14*
+*Milestone: v2.0 Hybrid Brain OS*
+*Coverage: 12/12 v2 requirements mapped*

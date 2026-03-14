@@ -1,141 +1,80 @@
-# Requirements
+# Requirements: Hybrid Brain OS
 
-**Project:** Second Brain
-**Version:** v1.0
-**Last Updated:** 2026-01-30
+**Defined:** 2026-03-14
+**Core Value:** Claude Code knows me deeply across sessions and proactively surfaces what matters
 
----
+## v2 Requirements
 
-## Validated (Existing)
+Requirements for the hybrid evolution. Each maps to roadmap phases.
 
-These capabilities exist in the current codebase:
+### Foundation
 
-- ✓ **SLACK-01**: Fetch messages from Slack channel with retry/rate limiting — existing
-- ✓ **SLACK-02**: Track processed messages for idempotency — existing
-- ✓ **SLACK-03**: Reply to messages with filing confirmation — existing
-- ✓ **SLACK-04**: Handle `fix:` thread replies for corrections — existing
-- ✓ **WRITE-01**: Create .md files with YAML frontmatter — existing
-- ✓ **WRITE-02**: Sanitize filenames and handle duplicates — existing
-- ✓ **WRITE-03**: Extract and link entities as wikilinks — existing
-- ✓ **HEALTH-01**: Monitor system health and alert on failures — existing
-- ✓ **DIGEST-01**: Generate daily digest summaries — existing
-- ✓ **DIGEST-02**: Generate weekly review summaries — existing
+- [ ] **FOUND-01**: AI Workspace folder (05_AI_Workspace) created in Obsidian vault with dashboards/, insights/, canvas/, daily-briefs/ subfolders and CLAUDE.md write rules
+- [ ] **FOUND-02**: PreToolUse hook that blocks Claude from writing to human PARA folders (01-04), exits with code 2 and explanation on violation
+- [ ] **FOUND-03**: Canonical YAML frontmatter schema document for people, projects, and tasks with Dataview-compatible field names
+- [ ] **FOUND-04**: Claude Code persistent memory system initialized with user profile, vault conventions, preferences, and reference pointers
 
----
+### Daily Workflow
 
-## v1 Requirements
+- [ ] **DAILY-01**: Morning briefing skill that generates comprehensive daily briefing (overdue tasks, due today, follow-ups, calendar, automation opportunities) and outputs to 05_AI_Workspace/daily-briefs/
+- [ ] **DAILY-02**: End-of-day update skill that syncs tasks, refreshes dashboards, captures session learnings to Claude Code memory
+- [ ] **DAILY-03**: Session hooks — SessionStart surfaces stale tasks and upcoming deadlines, SessionEnd triggers dashboard refresh
+- [ ] **DAILY-04**: Enhanced /new-task command with Dataview-compatible rich metadata (due, priority, project, domain, context tags)
 
-### Vault Discovery
+### Proactive Layer
 
-- [x] **VAULT-01**: App scans Obsidian vault to discover domain folders (Personal, CCBH, Just Value) ✓
-- [x] **VAULT-02**: App scans PARA subfolders within each domain (Projects/Areas/Resources/Archives) ✓
-- [x] **VAULT-03**: App scans subject subfolders within each PARA section ✓
-- [x] **VAULT-04**: App caches vault structure with configurable TTL (default 6 hours) ✓
-- [x] **VAULT-05**: User can manually trigger vault rescan from menu bar ✓
+- [ ] **PROACT-01**: Insights skill that performs weekly vault-wide analysis detecting drift from goals, neglected areas, overcommitment, dormant projects
+- [ ] **PROACT-02**: Alert routing system that delivers urgent items via Slack channel post + macOS notification + Obsidian daily note append
+- [ ] **PROACT-03**: Dataview dashboard notes in 05_AI_Workspace/dashboards/ for productivity overview (tasks by status/priority) and project status (active projects with health indicators)
+- [ ] **PROACT-04**: Canvas visual weekly review board in 05_AI_Workspace/canvas/ showing projects, tasks, and domains in spatial layout
 
-### Classification
+## v3 Requirements
 
-- [x] **CLASS-01**: App classifies message domain (Personal, CCBH, Just Value) ✓
-- [x] **CLASS-02**: App classifies PARA type (Projects, Areas, Resources, Archives) ✓
-- [x] **CLASS-03**: App classifies subject within the PARA folder ✓
-- [x] **CLASS-04**: App assigns category tag to each note ✓
-- [x] **CLASS-05**: Classification runs locally via Ollama (no cloud API) ✓
-- [x] **CLASS-06**: Classification uses vault vocabulary from scanner ✓
+Deferred to future milestone. Tracked but not in current roadmap.
 
-### Processing
+### People/CRM
 
-- [x] **PROC-01**: App processes Slack messages on startup (backlog since last run) ✓
-- [x] **PROC-02**: App polls Slack every 2 minutes while running ✓
-- [x] **PROC-03**: App creates .md files with domain/para/subject/category frontmatter ✓
-- [x] **PROC-04**: App places files in correct vault folder path ✓
-
-### User Interface
-
-- [x] **UI-01**: App displays menu bar icon showing sync status (idle/syncing/error) ✓
-- [x] **UI-02**: User can trigger manual sync from menu bar ✓
-- [x] **UI-03**: User can view recent activity from menu bar ✓
-- [x] **UI-04**: User can quit app from menu bar ✓
-- [x] **UI-05**: App shows notification when new notes are filed ✓
-
-### Setup
-
-- [x] **SETUP-01**: First-run wizard checks if Ollama is installed ✓
-- [x] **SETUP-02**: First-run wizard guides Ollama download if missing ✓
-- [x] **SETUP-03**: First-run wizard checks if required model is available ✓
-- [x] **SETUP-04**: First-run wizard triggers model download with progress indicator ✓
-- [x] **SETUP-05**: First-run wizard allows user to configure vault path ✓
-- [x] **SETUP-06**: First-run wizard validates Slack credentials ✓
-
-### Distribution
-
-- [x] **DIST-01**: App is distributed as .pkg installer ✓
-- [x] **DIST-02**: Installer places app in /Applications ✓
-- [x] **DIST-03**: App can be launched on login (optional LaunchAgent) ✓
-
-### Migration
-
-- [ ] **MIGRATION-01**: App starts up instantly (< 0.5s) and uses low memory (< 20MB)
-- [ ] **MIGRATION-02**: App maintains feature parity with v1.0 Python implementation
-
----
-
-## v2 Requirements (Deferred)
-
-- [ ] **V2-01**: Learning from corrections to improve future classification
-- [ ] **V2-02**: Batch reclassification when vault structure changes
-- [ ] **V2-03**: Multiple Slack channel support
-- [ ] **V2-04**: iOS native capture app (bypass Slack)
-- [ ] **V2-05**: Apple Developer ID signing and notarization for public distribution
-
----
+- **CRM-01**: Structured contact records with rich YAML frontmatter (name, company, relationship, last_contact, follow_up_date, interaction_count)
+- **CRM-02**: 360-degree people hub with Dataview queries aggregating meetings, tasks, and mentions per person
+- **CRM-03**: Follow-up monitoring with proactive alerts when contacts go cold (30+ days) or follow-ups are overdue
+- **CRM-04**: CRM dashboard note with Dataview tables showing overdue follow-ups, contact health, interaction history
 
 ## Out of Scope
 
-| Exclusion | Reason |
-|-----------|--------|
-| Real-time sync | Event-driven with 2-min polling is sufficient |
-| Multi-user support | Personal tool, single vault |
-| Cloud sync of state | Obsidian handles vault sync via iCloud |
-| Custom LLM training | Off-the-shelf Ollama models sufficient |
-| App Store distribution | Sandboxing conflicts with vault access |
-| Slack webhooks | Requires public endpoint; polling simpler |
-
----
+| Feature | Reason |
+|---------|--------|
+| External database (Supabase, SQLite) | Using Obsidian-native YAML + Dataview; data locality constraint |
+| React dashboards / web apps | Obsidian notes + Canvas only; single-app UX goal |
+| MCP server development | Using existing file system access and Slack integration |
+| Mobile app | Obsidian mobile handles vault access |
+| Multi-user / team features | Personal system only |
+| Modifying Python backend | v1.0 is mature and stable (259 tests) |
+| Auto-tagging without human review | Creates collector's fallacy; AI suggests, human confirms |
+| Full vault context loading | Destroys performance; keep progressive loading discipline |
+| Perfect taxonomy upfront | Start with PARA; add schema fields when real use cases demand |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| VAULT-01 | Phase 2 | Complete |
-| VAULT-02 | Phase 2 | Complete |
-| VAULT-03 | Phase 2 | Complete |
-| VAULT-04 | Phase 2 | Complete |
-| VAULT-05 | Phase 2 | Complete |
-| CLASS-01 | Phase 4 | Complete |
-| CLASS-02 | Phase 5 | Complete |
-| CLASS-03 | Phase 5 | Complete |
-| CLASS-04 | Phase 5 | Complete |
-| CLASS-05 | Phase 3 | Complete |
-| CLASS-06 | Phase 5 | Complete |
-| PROC-01 | Phase 6 | Complete |
-| PROC-02 | Phase 6 | Complete |
-| PROC-03 | Phase 6 | Complete |
-| PROC-04 | Phase 6 | Complete |
-| UI-01 | Phase 7 | Complete |
-| UI-02 | Phase 7 | Complete |
-| UI-03 | Phase 7 | Complete |
-| UI-04 | Phase 7 | Complete |
-| UI-05 | Phase 7 | Complete |
-| SETUP-01 | Phase 8 | Complete |
-| SETUP-02 | Phase 8 | Complete |
-| SETUP-03 | Phase 8 | Complete |
-| SETUP-04 | Phase 8 | Complete |
-| SETUP-05 | Phase 8 | Complete |
-| SETUP-06 | Phase 8 | Complete |
-| DIST-01 | Phase 9 | Complete |
-| DIST-02 | Phase 9 | Complete |
-| DIST-03 | Phase 9 | Complete |
+| FOUND-01 | Phase 1 | Pending |
+| FOUND-02 | Phase 1 | Pending |
+| FOUND-03 | Phase 1 | Pending |
+| FOUND-04 | Phase 2 | Pending |
+| DAILY-01 | Phase 3 | Pending |
+| DAILY-02 | Phase 3 | Pending |
+| DAILY-03 | Phase 2 | Pending |
+| DAILY-04 | Phase 3 | Pending |
+| PROACT-01 | Phase 4 | Pending |
+| PROACT-02 | Phase 4 | Pending |
+| PROACT-03 | Phase 3 | Pending |
+| PROACT-04 | Phase 4 | Pending |
+
+**Coverage:**
+- v2 requirements: 12 total
+- Mapped to phases: 12
+- Unmapped: 0 ✓
 
 ---
-
-*Requirements defined: 2026-01-30*
+*Requirements defined: 2026-03-14*
+*Last updated: 2026-03-14 after initial definition*

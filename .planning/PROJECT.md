@@ -1,123 +1,75 @@
-# Second Brain
+# Hybrid Brain OS
 
 ## What This Is
 
-A macOS app that connects Slack to Obsidian, using local LLM (Ollama) to classify and route notes into a PARA-structured vault across three domains.
+A personal operating system that evolves the existing Second Brain (Slack→Ollama→Obsidian menu bar app) into a hybrid Open Brain / Second Brain system. It combines automated capture, interactive AI partnership, and proactive monitoring — all native to Obsidian and Claude Code. Built for one person across four life domains: personal productivity, professional work, people/CRM, and research.
 
 ## Core Value
 
-**Capture thoughts anywhere, have them automatically organized.**
-
-The friction of manual filing kills capture habits. This app removes that friction: send a message to Slack from any device, and it appears in the right place in your Obsidian vault — classified by domain, PARA type, subject, and category — without touching your laptop.
-
-## The Problem
-
-Extemporaneous thoughts are the hardest to capture. You're walking, driving, in a meeting — an idea hits, but your second brain system lives on your laptop in Obsidian. By the time you can file it properly, the thought is gone or stale.
-
-Current workarounds (Apple Notes, voice memos, email-to-self) create orphaned capture points that never get processed. The inbox zero dream dies in scattered apps.
-
-## The Solution
-
-**Slack as universal inbox → Local LLM classification → Obsidian as organized vault**
-
-1. User sends message to dedicated Slack channel (works from any device)
-2. macOS app pulls messages when machine is available (Slack = queue)
-3. Ollama classifies: domain → PARA type → subject → category
-4. Creates `.md` file with proper frontmatter in correct folder
-5. User can reply with `fix:` to correct misclassification
-
-## Vault Structure
-
-Three domains, each with PARA structure and subject subfolders:
-
-```
-Home/
-├── Personal/
-│   ├── Projects/[subjects]/
-│   ├── Areas/[subjects]/
-│   ├── Resources/[subjects]/
-│   └── Archives/[subjects]/
-├── CCBH/
-│   └── [same PARA structure]
-└── Just Value/
-    └── [same PARA structure]
-```
-
-**Vault location:** `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/Home`
-
-Every `.md` file tagged with: `domain`, `para`, `subject`, `category`
-
-## Target User
-
-You (Richard). Secondary: technically moderate users who can install Ollama but shouldn't need CLI.
+Claude Code knows me deeply across sessions and proactively surfaces what matters — not just filing things away, but telling me what I should focus on, who I should follow up with, and what patterns I'm not seeing.
 
 ## Requirements
 
 ### Validated
 
-- ✓ Slack message fetching with retry/rate limiting — existing
-- ✓ State management for idempotency (message tracking, mapping) — existing
-- ✓ Obsidian file writing with YAML frontmatter — existing
-- ✓ Correction flow via `fix:` thread replies — existing
-- ✓ Health monitoring and failure alerts — existing
-- ✓ Daily digest generation — existing
-- ✓ Weekly review generation — existing
-- ✓ Entity extraction and wikilink generation — existing
+- ✓ Slack message capture and auto-classification — existing (v1.0, Second Brain)
+- ✓ PARA-based vault organization — existing
+- ✓ Local LLM classification via Ollama — existing
+- ✓ macOS menu bar app with status/sync — existing
+- ✓ 7 Claude Code commands (/today, /weekly, /new-task, etc.) — existing
+- ✓ 9 Claude Code skills (inbox processor, daily digest, weekly review, etc.) — existing
+- ✓ Progressive context loading system (_llm-context/) — existing
 
 ### Active
 
-- [ ] Dynamic vault scanner — builds domain/PARA/subject map from actual folder structure
-- [ ] Periodic map refresh — keeps classification vocabulary current as vault evolves
-- [ ] Local LLM classification — replace Claude API with Ollama for privacy and offline
-- [ ] Three-domain routing — Personal, CCBH, Just Value instead of flat categories
-- [ ] PARA-aware classification — Projects/Areas/Resources/Archives assignment
-- [ ] Subject classification — route to correct subject subfolder within PARA
-- [ ] Category tagging — assign semantic category tag to each note
-- [ ] Event-driven processing — trigger on Slack webhook or process backlog on startup
-- [ ] macOS .pkg installer — single installer for non-technical distribution
-- [ ] First-run setup wizard — check Ollama, guide model installation, configure vault path
-- [ ] Menu bar presence — lightweight UI showing status, last sync, manual trigger
-- [ ] Swift Migration — Native rewrite for performance and UX
+- [ ] AI Workspace folder in Obsidian vault (05_AI_Workspace) with strict separation rules
+- [ ] Persistent AI memory across sessions via Claude Code memory system
+- [ ] Morning briefing skill — comprehensive daily briefing across all domains
+- [ ] End-of-day update skill — sync tasks, update dashboards, capture learnings
+- [ ] People/CRM skill — relationship tracking with follow-up management
+- [ ] Dashboard skill — generate/refresh Dataview-powered Obsidian dashboard notes
+- [ ] Insights skill — proactive pattern detection across vault content
+- [ ] Alert system — Slack + macOS notifications + Obsidian daily note
+- [ ] Structured data via YAML frontmatter + Dataview queries (people, projects, habits)
+- [ ] Session hooks — auto-surface stale tasks on start, auto-update dashboards on end
+- [ ] Canvas templates for visual weekly reviews and project maps
+- [ ] Enhanced task creation with Dataview-compatible rich metadata
 
 ### Out of Scope
 
-- iOS native app — Slack's iOS app handles mobile capture adequately
-- Real-time sync — event-driven with backlog processing is sufficient
-- Multi-user support — personal tool, single vault
-- Cloud sync of state — local-only, Obsidian handles vault sync via iCloud
-- Custom LLM training — use off-the-shelf Ollama models
+- External database (Supabase, SQLite) — Using Obsidian-native YAML + Dataview instead
+- React dashboards / web apps — Obsidian notes + Canvas only
+- MCP server development — Using existing file system access and Slack integration
+- Mobile app — Obsidian mobile handles vault access
+- Multi-user / team features — Personal system only
+- Modifying the Python backend — v1.0 is mature and stable
+
+## Context
+
+- **Existing system**: Second Brain v1.0 at `apps/second-brain/` — macOS menu bar app, Python backend, 259 tests, 9 phases complete
+- **Obsidian vault**: `/Users/richardyu/Library/Mobile Documents/iCloud~md~obsidian/Documents/Home/`
+- **Vault structure**: PARA (01_Projects, 02_Areas_of_Interest, 03_Research, 04_Archive) with consistent YAML frontmatter
+- **Installed Obsidian plugins**: Dataview, Smart Connections, Templater, Tasks, Local REST API, MCP Tools, Auto Note Mover, Git
+- **notes-to-self/** system: Recently initialized in vault for Claude Code interaction (currently empty)
+- **Inspiration**: Anthropic's internal use of Claude Code — skills encoding institutional knowledge, plugin stacking, Dashmaker, productivity updates, morning briefings
+
+## Constraints
+
+- **Data locality**: All data stays local (Obsidian files, Ollama, Claude Code memory) — no cloud database
+- **Vault purity**: AI never writes to human PARA folders (01-04). AI workspace (05) is the only AI-writable area
+- **Backward compatibility**: Existing Slack capture pipeline must continue working unchanged
+- **Obsidian-native**: Dashboards and views must work within Obsidian (Dataview, Canvas, Properties) — no external web apps
+- **Progressive context**: Skills must load only relevant context, never dump entire vault into context window
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Ollama over Claude API | Privacy, offline capability, no API costs | — Pending model selection |
-| .pkg installer | Target users can't use CLI, need double-click install | — Pending build tooling |
-| Slack as queue | No separate queue infra; messages persist until Mac is available | Approved |
-| Vault scanning | Dynamic discovery vs manual config; adapts as vault evolves | Approved |
-| Event-driven over daemon | Resource efficient, use case doesn't need instant processing | Approved |
-| First-run wizard | Bridge Ollama installation without CLI exposure | Approved |
-
-## Constraints
-
-- **Platform:** macOS only (10.15+)
-- **Dependencies:** Ollama must be installed separately (not bundled)
-- **Vault location:** iCloud-synced Obsidian vault (fixed path)
-- **Model size:** Must run on MacBook Air M1 (8GB RAM constraint)
-
-## Open Questions
-
-1. Which Ollama model? Llama 3.2 (3B) vs Mistral vs others — need to test classification quality
-2. Webhook vs polling? Slack webhooks require public endpoint; polling simpler but less immediate
-3. What triggers "startup"? Login item? Menu bar app launch? LaunchAgent?
-
-## Success Criteria
-
-1. User sends Slack message → appears in correct vault location within 5 minutes of Mac wake
-2. Classification accuracy >90% across domain/PARA/subject (measured by fix: rate)
-3. Non-technical user can install from .pkg without terminal usage
-4. First-run wizard successfully guides Ollama + model setup
+| Obsidian-native data layer (YAML + Dataview) over Supabase | Keep everything local, no external service dependency, vault is portable | — Pending |
+| AI workspace folder over Claude Code-only storage | Dashboards and insights visible in Obsidian, queryable by Dataview, human-reviewable | — Pending |
+| Evolve existing project over building from scratch | Preserve 259 tests, 9 completed phases, mature Slack pipeline, existing skills | — Pending |
+| Hooks for automation over manual triggers | Session-start/end hooks enable proactive behavior without user remembering to invoke | — Pending |
+| Claude Code memory over vault-based AI memory | Session context and preferences don't belong in the knowledge vault | — Pending |
 
 ---
-
-*Last updated: 2026-01-30 after initialization*
+*Last updated: 2026-03-14 after initialization*

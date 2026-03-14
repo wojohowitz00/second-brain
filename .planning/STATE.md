@@ -2,39 +2,36 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-01-30)
+See: .planning/PROJECT.md (updated 2026-03-14)
 
-**Core value:** Capture thoughts anywhere, have them automatically organized.
-**Current focus:** Phase 10 (Swift Migration)
+**Core value:** Claude Code knows me deeply across sessions and proactively surfaces what matters
+**Current focus:** Phase 1 — Foundation
 
 ## Current Position
 
-Phase: PLANNING
-Plan: 10-01-PLAN.md (Drafted)
-Status: Planning Swift Rewrite
-Last activity: 2026-02-10 - Initiated Phase 10
-Last activity: 2026-01-31 - Milestone v1.0.0 complete
+Phase: 1 of 4 (Foundation)
+Plan: 0 of 3 in current phase
+Status: Ready to plan
+Last activity: 2026-03-14 — Roadmap created, ready to plan Phase 1
 
-Progress: [██████████] 100% — SHIPPED 🚀
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 10 min
-- Total execution time: 0.65 hours
+- Total plans completed: 0
+- Average duration: -
+- Total execution time: -
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-foundation-validation | 2/2 | 8min | 4min |
-| 03-ollama-connection | 1/1 | 15min | 15min |
-| 05-multi-level-classification | 1/1 | 15min | 15min |
+| - | - | - | - |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (3min), 01-02 (5min), 03-01 (15min), 05-01 (15min)
-- Trend: Consistent
+- Last 5 plans: -
+- Trend: -
 
 *Updated after each plan completion*
 
@@ -45,16 +42,9 @@ Progress: [██████████] 100% — SHIPPED 🚀
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- Roadmap structure: 9 phases with Ollama validation checkpoint at Phase 3
-- Test isolation: Use pytest tmp_path fixture with monkeypatch for state tests (01-01)
-- Boundary behavior: TTL cleanup removes entries exactly at boundary (uses >, not >=) (01-01)
-- Test patterns: Parametrize edge cases, structure as classes by function (01-01)
-- Integration test structure: Skip gracefully when credentials missing, use markers (01-02)
-- Health check pattern: Separate client with shorter timeout for quick status checks (03-01)
-- Exception hierarchy: Base exception with specific subclasses matching slack_client.py pattern (03-01)
-- Single-shot classification: One LLM call for all 4 levels vs sequential calls (avoids 40-120s latency) (05-01)
-- Vocabulary validation: Invalid LLM responses normalize to safe defaults (05-01)
-- JSON with regex fallback: Robust parsing handles malformed LLM responses (05-01)
+- Foundation: AI writes ONLY to `05_AI_Workspace/` — enforced by PreToolUse hook before any skill has write capability
+- Foundation: YAML frontmatter schema defined before any Dataview queries are built (prevents schema lock-in)
+- Foundation: Claude Code memory (not vault files) stores cross-session preferences and patterns
 
 ### Pending Todos
 
@@ -62,10 +52,11 @@ None yet.
 
 ### Blockers/Concerns
 
-None yet.
+- Phase 4 (Canvas): Research flagged LOW confidence on Obsidian Canvas file write patterns from Claude Code skills. Validate Canvas JSON interaction before building the visual weekly review skill.
+- Phase 3 (Dataview iOS): Dashboard notes used on mobile must be tested on iOS before Phase 3 ships — known macOS/iOS query inconsistencies exist.
 
 ## Session Continuity
 
-Last session: 2026-01-31
-Stopped at: Completed 05-01-PLAN.md
+Last session: 2026-03-14
+Stopped at: Roadmap and STATE.md created; REQUIREMENTS.md traceability already populated
 Resume file: None

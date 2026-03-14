@@ -1,635 +1,525 @@
-# macOS Menu Bar App Architecture with Local LLM Backend
+# Architecture Patterns
 
-**Research Date:** 2026-01-30
-**Context:** Adding menu bar presence and Ollama integration to existing Python backend
-
----
-
-## Component Overview
-
-### 1. Menu Bar App (macOS Native Layer)
-
-**Technology:** `rumps` (Ridiculously Uncomplicated macOS Python Statusbar)
-
-**Purpose:** Provide user-facing interface and application lifecycle management
-
-**Responsibilities:**
-- Display status icon in menu bar (shows sync state: idle, syncing, error)
-- Present dropdown menu with actions (Sync Now, View Logs, Preferences, Quit)
-- Launch on login (LaunchAgent configuration)
-- Coordinate backend processing lifecycle
-- Display notifications for user-facing events
-
-**Key Characteristics:**
-- Lightweight UI thread (minimal CPU/memory footprint)
-- No direct LLM or Slack communication (delegates to backend)
-- Manages background worker lifecycle
-- Persists across sleep/wake cycles
-
-**Communication:**
-- Spawns backend worker process
-- Reads status from shared state file (`~/.second-brain/status.json`)
-- Uses IPC (file-based or simple socket) for manual trigger commands
+**Domain:** Hybrid Open Brain / Second Brain personal OS
+**Researched:** 2026-03-14
+**Milestone context:** Subsequent — adding Proactive Layer to existing Obsidian + Claude Code system
 
 ---
 
-### 2. Backend Worker (Processing Engine)
+## System Overview
 
-**Technology:** Python asyncio-based event loop
-
-**Purpose:** Orchestrate message processing, classification, and Obsidian writing
-
-**Responsibilities:**
-- Poll Slack API for new messages (every 2 minutes when active)
-- Queue messages for classification
-- Coordinate with Ollama for classification
-- Write classified thoughts to Obsidian vault
-- Handle correction flow ("fix:" commands)
-- Update shared state for menu bar status display
-
-**Key Characteristics:**
-- Single-threaded event loop (async I/O for Slack, Ollama)
-- Spawned by menu bar app on launch
-- Runs continuously in background
-- Graceful shutdown on SIGTERM
-
-**Communication:**
-- Reads configuration from `~/.second-brain/config.json`
-- Writes status to `~/.second-brain/status.json` (last sync, error state)
-- Accepts manual trigger via file-based command queue
-
----
-
-### 3. Ollama Client (LLM Integration Layer)
-
-**Technology:** `ollama-python` client library
-
-**Purpose:** Interface with local Ollama service for classification
-
-**Responsibilities:**
-- Check Ollama service availability
-- Load configured model (e.g., llama3.2:3b)
-- Send classification prompts with structured output
-- Parse JSON responses
-- Handle model loading delays and errors
-
-**Key Characteristics:**
-- Synchronous HTTP calls to `localhost:11434/api/generate`
-- Structured JSON output via prompt engineering
-- Fallback to lower confidence on parsing failures
-- Model-agnostic (configurable model name)
-
-**Communication:**
-- HTTP REST API to Ollama service
-- No authentication (localhost-only)
-- Timeout handling (30s for classification)
-
----
-
-### 4. Vault Scanner (Dynamic Discovery Layer)
-
-**Technology:** Python filesystem walker with caching
-
-**Purpose:** Build dynamic vocabulary of domain/PARA/subject structure
-
-**Responsibilities:**
-- Scan Obsidian vault folder structure
-- Extract domain names (Personal, CCBH, Just Value)
-- Extract PARA folders (Projects, Areas, Resources, Archives)
-- Extract subject subfolders within each PARA section
-- Cache results with TTL (refresh every 6 hours or on manual trigger)
-
-**Key Characteristics:**
-- Runs on startup and periodically
-- Builds classification context for LLM prompts
-- Adapts to vault changes without code updates
-- Stores map in `~/.second-brain/vault_map.json`
-
-**Communication:**
-- Reads from filesystem (`~/Library/Mobile Documents/iCloud~md~obsidian/Documents/Home`)
-- Writes to cache file for backend worker consumption
-
----
-
-### 5. Slack Integration Layer (Existing)
-
-**Technology:** `requests` with retry logic
-
-**Purpose:** Fetch messages and send replies
-
-**Responsibilities:**
-- Poll `conversations.history` API
-- Fetch thread replies for "fix:" detection
-- Send confirmation messages
-- Send DM alerts on failures
-
-**Key Characteristics:**
-- Exponential backoff retry (3 attempts)
-- Rate limit handling (429 responses)
-- State-based message tracking (idempotency)
-
-**Communication:**
-- HTTPS to Slack API (`slack.com/api/*`)
-- OAuth token authentication
-- JSON payload/response
-
----
-
-### 6. State Management Layer (Existing)
-
-**Technology:** File-based JSON with atomic writes
-
-**Purpose:** Track processed messages, file mappings, run history
-
-**Responsibilities:**
-- Record processed message timestamps
-- Map Slack message TS to vault file paths
-- Track last successful run for health checks
-- Dead letter queue for failed messages
-
-**Key Characteristics:**
-- File locking (fcntl) for concurrent access
-- TTL-based cleanup (30-day retention)
-- Append-only logs for audit trail
-
-**Communication:**
-- Filesystem writes to `~/.second-brain/.state/`
-- Shared state files read by menu bar app for status display
-
----
-
-### 7. First-Run Wizard (Setup Component)
-
-**Technology:** `tkinter` dialog or CLI prompts with validation
-
-**Purpose:** Guide initial setup for non-technical users
-
-**Responsibilities:**
-- Check Ollama installation (`which ollama`)
-- Guide model download (`ollama pull llama3.2:3b`)
-- Validate vault path exists
-- Create configuration file
-- Test Slack credentials
-- Offer to install as Login Item
-
-**Key Characteristics:**
-- Runs only on first launch (or when config missing)
-- Blocking UI (prevents main app launch until complete)
-- Validation at each step
-- Graceful exit on cancel
-
-**Communication:**
-- Spawns subprocess for `ollama pull`
-- Writes to `~/.second-brain/config.json`
-- Tests Slack API with provided token
-
----
-
-## Data Flow
-
-### Startup Sequence
+The hybrid system has three established layers and one new layer being added. This document maps the full architecture including where the Proactive Layer fits.
 
 ```
-1. Menu Bar App Launch
-   ↓
-2. Check ~/.second-brain/config.json
-   ├─ Missing → Run First-Run Wizard → Create config → Continue
-   └─ Exists → Validate config → Continue
-   ↓
-3. Spawn Backend Worker Process
-   ↓
-4. Backend Worker Initialization
-   ├─ Load configuration
-   ├─ Run Vault Scanner (build domain/PARA/subject map)
-   ├─ Check Ollama availability (HTTP GET /api/tags)
-   ├─ Load state (last processed timestamp)
-   └─ Start event loop
-   ↓
-5. Menu Bar App Updates Status
-   └─ Read ~/.second-brain/status.json
-   └─ Display "Idle" or "Error: Ollama not running"
-```
-
----
-
-### Message Processing Flow
-
-```
-1. Slack Poll (every 2 minutes)
-   ↓
-2. Fetch new messages since last timestamp
-   ↓
-3. Filter: Skip "fix:" commands, bot messages, already processed
-   ↓
-4. For each message:
-   ├─ Build classification prompt with vault map context
-   ├─ Send to Ollama (/api/generate with JSON schema)
-   ├─ Parse JSON response
-   ├─ Validate classification schema
-   │  └─ On error: Fallback to "ideas" with low confidence
-   ├─ Write to Obsidian vault
-   │  ├─ Determine path: domain/PARA/subject/filename.md
-   │  ├─ Generate frontmatter (YAML)
-   │  ├─ Insert wikilinks
-   │  └─ Write file
-   ├─ Update state (mark processed, map TS → file path)
-   ├─ Log to inbox log
-   ├─ Append to daily note
-   └─ Send Slack confirmation reply
-   ↓
-5. Update status.json (last sync time, message count)
-   ↓
-6. Menu bar app reads status.json → updates icon tooltip
-```
-
----
-
-### Manual Trigger Flow (User clicks "Sync Now")
-
-```
-1. Menu bar app writes command to ~/.second-brain/commands/trigger_sync
-   ↓
-2. Backend worker detects command file (event loop checks every 1s)
-   ↓
-3. Backend runs immediate Slack poll (skip 2-minute timer)
-   ↓
-4. Process messages as normal
-   ↓
-5. Update status.json with "Manual sync completed"
-   ↓
-6. Menu bar app displays notification
-   ↓
-7. Delete command file
-```
-
----
-
-### Correction Flow ("fix:" command)
-
-```
-1. Slack Poll detects "fix:" message in thread
-   ↓
-2. Extract parent message TS and new destination
-   ↓
-3. Lookup file path from message mapping (state.message_mapping[parent_ts])
-   ↓
-4. Determine new path: domain/PARA/subject/filename.md
-   ↓
-5. Move file to new location
-   ↓
-6. Update frontmatter (domain, para, subject fields)
-   ↓
-7. Update state mapping (point parent_ts to new file path)
-   ↓
-8. Send Slack confirmation
-```
-
----
-
-### Health Check Flow (runs every 5 minutes)
-
-```
-1. Backend worker checks last successful Slack poll
-   ├─ If > 10 minutes ago → Mark as unhealthy
-   └─ Update status.json with error state
-   ↓
-2. Check Ollama availability
-   ├─ HTTP GET /api/tags
-   ├─ If timeout or error → Mark as unhealthy
-   └─ Update status.json
-   ↓
-3. Menu bar app reads status.json
-   └─ Display warning icon if unhealthy
-   └─ Show "Error: Ollama not responding" in menu
+┌─────────────────────────────────────────────────────────────────┐
+│                    OBSIDIAN VAULT (iCloud sync)                 │
+│  01_Projects/ 02_Areas/ 03_Research/ 04_Archive/  05_AI_Workspace/│
+│  (Human PARA — AI reads only)                    (AI writes)   │
+├─────────────────────────────────────────────────────────────────┤
+│                    CLAUDE CODE INTERACTIVE LAYER               │
+│  .claude/skills/  .claude/commands/  .claude/hooks/            │
+│  _llm-context/    CLAUDE.md          auto memory               │
+├─────────────────────────────────────────────────────────────────┤
+│                    PYTHON AUTOMATED LAYER (MATURE)             │
+│  Slack → Ollama classifier → Obsidian file routing             │
+│  backend/_scripts/  (259 tests, do not modify)                │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## Component Boundaries
 
-### What Talks to What
-
-**Menu Bar App:**
-- Reads: `~/.second-brain/status.json`, `~/.second-brain/config.json`
-- Writes: `~/.second-brain/commands/trigger_sync`
-- Spawns: Backend Worker process
-
-**Backend Worker:**
-- Reads: `~/.second-brain/config.json`, `~/.second-brain/.state/*`, `~/.second-brain/commands/*`
-- Writes: `~/.second-brain/status.json`, `~/.second-brain/.state/*`, Obsidian vault files
-- Calls: Slack API, Ollama API
-
-**Vault Scanner:**
-- Reads: Obsidian vault filesystem
-- Writes: `~/.second-brain/vault_map.json`
-
-**Ollama Client:**
-- Calls: `localhost:11434/api/generate`, `localhost:11434/api/tags`
-
-**Slack Client:**
-- Calls: `slack.com/api/conversations.history`, `slack.com/api/chat.postMessage`
-
-**State Manager:**
-- Reads/Writes: `~/.second-brain/.state/processed_messages.json`, `message_mapping.json`, `run_history.json`
-
-**First-Run Wizard:**
-- Reads: System (checks for `ollama` binary, vault path)
-- Writes: `~/.second-brain/config.json`
-- Spawns: `ollama pull llama3.2:3b`
+| Component | Responsibility | Reads From | Writes To | Communicates With |
+|-----------|---------------|------------|-----------|-------------------|
+| **Obsidian Vault (01-04)** | Human knowledge store | User edits | User only | Dataview (query), Python backend (file in) |
+| **05_AI_Workspace** | AI-generated content store | Claude Code skills | Claude Code skills | Obsidian Dataview (surface via queries) |
+| **Python backend** | Automated Slack capture + classification | Slack API, Ollama | 01-04 PARA folders | Obsidian, Slack |
+| **Claude Code skills** | Interactive AI capabilities (9 skills) | Vault (01-04 + 05), _llm-context | 05_AI_Workspace, daily/ notes | Hooks, Memory, Obsidian |
+| **Claude Code commands** | Session entry points (7 commands) | Vault, skills | Triggers skill execution | Skills |
+| **Claude Code hooks** | Automated lifecycle triggers | Hook event JSON | 05_AI_Workspace, Slack, stdout context | Claude session |
+| **Claude Code memory** | Cross-session context persistence | ~/.claude/projects/.../memory/ | MEMORY.md + topic files | Every session start |
+| **CLAUDE.md + rules/** | Session-persistent instructions | Static files | Claude context window | Every session |
+| **_llm-context/** | Progressive context disclosure | Profile/style files | Claude context (on demand) | Skills load these on invocation |
+| **Dataview dashboards** | Dynamic views across vault | YAML frontmatter across all notes | Read-only rendered views | Obsidian only |
+| **Slack + macOS notifications** | Proactive alert delivery | Hook triggers | User-facing alerts | Hooks write, user receives |
 
 ---
 
-### Isolation Principles
+## Data Flow
 
-1. **Menu bar app never does I/O** (Slack, Ollama, Obsidian) — only UI and lifecycle management
-2. **Backend worker never does GUI** — only console logs and status file writes
-3. **Ollama client is abstraction** — backend never calls Ollama HTTP API directly
-4. **State files are single source of truth** — no in-memory state shared across components
-5. **Vault scanner is independent** — can be tested/run standalone
+### Flow 1: Morning Ritual (Interactive Layer, existing)
 
----
+```
+User → /today command
+  → today.md command loads
+  → daily-digest skill invoked
+  → reads tasks/, projects/, ideas/, people/ (01-04 PARA)
+  → reads research/digests/ (05 once built)
+  → writes daily/[date].md (interactive layer output)
+  → optionally sends Slack DM
+```
 
-## Build Order (Dependencies)
+### Flow 2: Automated Slack Capture (Python Layer, existing, mature)
 
-### Phase 1: Foundation (No new dependencies)
-**Goal:** Validate existing backend works with current architecture
+```
+Slack #sb-inbox message
+  → Python backend polls Slack API
+  → Ollama classifies message
+  → Routes to 01-04 PARA folder with YAML frontmatter
+  → logs to _inbox_log/
+```
 
-1. **Extract Slack client** — Already done (`slack_client.py`)
-2. **Extract state management** — Already done (`state.py`)
-3. **Extract validation** — Already done (`schema.py`)
-4. **Extract wikilinks** — Already done (`wikilinks.py`)
+### Flow 3: Hook-Triggered Proactive Alert (NEW - Proactive Layer)
 
-**Deliverable:** Modular backend scripts that can be imported as library
+```
+Claude Code lifecycle event fires
+  → Hook script reads event JSON from stdin
+  → Script scans vault / evaluates condition
+  → If threshold met: writes to 05_AI_Workspace/alerts/
+  → Sends macOS notification (osascript) + Slack DM
+  → Appends alert summary to daily/[date].md
+  → Returns exit 0 to Claude (non-blocking)
+```
 
----
+### Flow 4: SessionStart Context Injection (NEW - Proactive Layer)
 
-### Phase 2: Vault Scanner (New component, no external deps)
-**Goal:** Enable dynamic domain/PARA/subject discovery
+```
+Claude Code session begins (startup or compact)
+  → SessionStart hook fires
+  → Hook script reads from ~/.claude/projects/.../memory/MEMORY.md
+  → Hook script scans overdue tasks in vault
+  → Outputs context string to stdout
+  → Claude receives as pre-session context
+  → Session proceeds with injected state
+```
 
-1. **Implement vault walker** — Scan folders, build hierarchy map
-2. **Implement caching** — Write/read `vault_map.json` with TTL
-3. **Add refresh trigger** — Detect vault changes or manual refresh
-4. **Test with real vault** — Ensure accurate extraction
+### Flow 5: AI Workspace Write (NEW - Proactive Layer)
 
-**Deliverable:** `vault_scanner.py` module that returns domain/PARA/subject tree
+```
+Skill or hook generates AI content
+  → Writes ONLY to 05_AI_Workspace/[subfolder]/
+  → Follows naming convention: [date]-[type]-[slug].md
+  → File has YAML frontmatter: type, generated_by, source_context, date
+  → Obsidian Dataview queries 05_AI_Workspace to surface in dashboards
+```
 
-**Dependencies:** Phase 1 (uses filesystem, no external deps)
+### Flow 6: Memory Update (NEW - Proactive Layer)
 
----
+```
+User corrects Claude or reveals preference
+  → Claude decides this is worth remembering
+  → Auto memory writes to ~/.claude/projects/.../memory/MEMORY.md
+  → Or Claude writes to topic file (debugging.md, preferences.md, etc.)
+  → Next session: first 200 lines of MEMORY.md injected at start
+  → Topic files loaded on demand when relevant
+```
 
-### Phase 3: Ollama Integration (Replaces Claude API)
-**Goal:** Local LLM classification without API calls
+### Flow 7: YAML-Dataview Query Loop (Obsidian Native)
 
-1. **Install ollama-python** — `uv add ollama`
-2. **Create Ollama client** — Wrapper around `ollama.generate()` with JSON schema
-3. **Build classification prompt** — Include vault map context from Phase 2
-4. **Test classification quality** — Compare vs Claude API on sample messages
-5. **Add fallback handling** — Low confidence on parse failures
-
-**Deliverable:** `ollama_client.py` module that replaces `classify_thought()` placeholder
-
-**Dependencies:** Phase 2 (needs vault map for prompt context)
-
----
-
-### Phase 4: Backend Worker Refactor (Event loop)
-**Goal:** Move from cron to persistent background process
-
-1. **Create async event loop** — Replace cron-triggered scripts
-2. **Add periodic polling** — 2-minute interval for Slack checks
-3. **Add health monitoring** — Ollama/Slack availability checks every 5 minutes
-4. **Add command queue** — File-based IPC for manual triggers
-5. **Add graceful shutdown** — SIGTERM handler for clean exit
-
-**Deliverable:** `worker.py` that runs as background daemon
-
-**Dependencies:** Phase 3 (needs Ollama client)
-
----
-
-### Phase 5: Menu Bar App (macOS UI)
-**Goal:** User-facing application with status display
-
-1. **Install rumps** — `uv add rumps`
-2. **Create basic menu bar app** — Icon, menu items
-3. **Add status display** — Read `status.json`, update icon/tooltip
-4. **Add manual trigger** — "Sync Now" writes to command queue
-5. **Add preferences** — Open config file in editor
-6. **Add log viewer** — Open `~/SecondBrain/_inbox_log/` in Finder
-
-**Deliverable:** `menu_bar.py` that spawns worker and shows status
-
-**Dependencies:** Phase 4 (needs worker process)
+```
+Note with YAML frontmatter created by any source
+  → Dataview indexes frontmatter automatically
+  → Dashboard note contains dataview code block
+  → Query: TABLE status, due_date FROM "01_Projects" WHERE type = "task"
+  → Or: TABLE generated_by, date FROM "05_AI_Workspace" WHERE type = "digest"
+  → Renders as live table in Obsidian, updates as files change
+```
 
 ---
 
-### Phase 6: First-Run Wizard (Setup UX)
-**Goal:** Guide initial configuration for non-technical users
+## Recommended Architecture
 
-1. **Create wizard dialog** — CLI prompts with validation
-2. **Add Ollama check** — Detect installation, offer download link
-3. **Add model download** — Run `ollama pull llama3.2:3b` with progress
-4. **Add vault path input** — Browse for Obsidian vault
-5. **Add Slack credential input** — Token, channel ID, user ID
-6. **Add config generation** — Write `config.json`
+### 05_AI_Workspace Structure
 
-**Deliverable:** `setup_wizard.py` that runs on first launch
+```
+05_AI_Workspace/
+├── alerts/              # Time-sensitive proactive alerts
+│   └── [date]-[type].md
+├── digests/             # Daily/weekly AI-generated summaries
+│   ├── daily/
+│   │   └── [YYYY-MM-DD]-digest.md
+│   └── weekly/
+│       └── [YYYY-WW]-digest.md
+├── research/            # AI-generated research outputs
+│   └── [topic]/
+│       └── [date]-[paper/topic].md
+├── drafts/              # Writing assistance outputs
+│   └── [project]/
+└── dashboards/          # Dataview dashboard notes
+    ├── task-dashboard.md
+    ├── project-dashboard.md
+    └── ai-activity.md
+```
 
-**Dependencies:** Phase 5 (integrated into menu bar app launch sequence)
+### YAML Frontmatter Convention for AI-Generated Files
+
+All files in `05_AI_Workspace` must carry this frontmatter:
+
+```yaml
+---
+type: [digest|alert|draft|research-summary]
+generated_by: claude-code
+skill: [skill-name]
+source_context: [where data came from, e.g., "tasks/ scan"]
+date: YYYY-MM-DD
+status: [generated|reviewed|archived]
+tags: [#ai-generated, #domain-tag]
+---
+```
+
+This makes all AI content queryable by Dataview and distinguishable from human content.
+
+### Hook Configuration Pattern
+
+Hooks live in two locations depending on scope:
+
+**Global (user-level, fires in any project):**
+```
+~/.claude/settings.json
+hooks:
+  SessionStart → inject vault summary into context
+  Notification → macOS + Slack alert on idle
+  Stop → optional: write session summary to 05_AI_Workspace
+```
+
+**Project-level (second-brain project only):**
+```
+second-brain/.claude/settings.json
+hooks:
+  PreToolUse (Write|Edit, matcher: "01_|02_|03_|04_") → block AI writes to PARA folders
+  PostToolUse (Write) → log AI writes to 05_AI_Workspace to audit trail
+  SessionStart (startup) → scan overdue tasks, inject into context
+```
+
+**Hook script location:**
+```
+second-brain/.claude/hooks/
+├── protect-para-folders.sh    # PreToolUse: block writes to 01-04
+├── inject-vault-summary.sh    # SessionStart: scan vault state
+├── log-ai-writes.sh           # PostToolUse: audit trail
+└── send-notification.sh       # Shared: osascript + Slack DM
+```
+
+### Memory File Organization
+
+```
+~/.claude/projects/[second-brain-path]/memory/
+├── MEMORY.md              # Index, loaded first 200 lines every session
+│                          # Contains: key preferences, recent patterns, current sprint
+├── preferences.md         # Writing style, task management habits
+├── patterns.md            # Recurring workflows Claude has learned
+└── vault-conventions.md   # PARA structure, YAML field conventions
+```
+
+MEMORY.md concise index structure:
+```markdown
+# Memory Index
+
+## Current Context
+- [sprint/focus area, e.g., "adding proactive hooks"]
+- [recent decisions]
+
+## Key Preferences
+- See preferences.md for full list
+- Most important: [2-3 critical preferences inline]
+
+## Vault Conventions
+- See vault-conventions.md
+- AI writes ONLY to 05_AI_Workspace/
+
+## Recent Patterns
+- [learned pattern 1]
+- [learned pattern 2]
+```
+
+### Skill File Structure Pattern
+
+Existing skills use a flat `skill.md` format (pre-frontmatter). New skills for the Proactive Layer should use current Claude Code frontmatter format:
+
+```yaml
+---
+name: proactive-alert-check
+description: Checks vault for overdue items and threshold conditions. Fires automatically on SessionStart or when invoked.
+user-invocable: false
+disable-model-invocation: false
+allowed-tools: Read, Grep, Glob, Bash
+hooks:
+  PostToolUse:
+    - matcher: "Write"
+      hooks:
+        - type: command
+          command: "$CLAUDE_SKILL_DIR/../../hooks/log-ai-writes.sh"
+---
+```
+
+Supporting files pattern for proactive skills:
+```
+skills/proactive/
+├── alert-monitor/
+│   ├── skill.md          # Main instructions + frontmatter
+│   ├── thresholds.md     # Configurable alert thresholds
+│   └── templates/
+│       └── alert.md      # Alert file template
+├── context-injector/
+│   ├── skill.md
+│   └── vault-scan.sh     # Shell script to scan vault state
+```
+
+### Dataview Dashboard Pattern
+
+Dashboard notes in `05_AI_Workspace/dashboards/` use Dataview queries to surface content dynamically. No AI generation required — Obsidian renders these live.
+
+Example task dashboard query:
+```dataview
+TABLE status, due_date, tags
+FROM "01_Projects"
+WHERE type = "task" AND status != "done"
+SORT due_date ASC
+```
+
+Example AI activity dashboard:
+```dataview
+TABLE generated_by, skill, source_context
+FROM "05_AI_Workspace"
+WHERE date >= date(today) - dur(7 days)
+SORT date DESC
+```
+
+The YAML frontmatter in each note is the contract between the data layer and the Dataview query layer. Changes to frontmatter field names require updating all corresponding queries.
 
 ---
 
-### Phase 7: Packaging & Distribution (.pkg installer)
-**Goal:** Single-click installation for non-technical users
+## Patterns to Follow
 
-1. **Choose packager** — PyInstaller vs py2app (recommend PyInstaller for simplicity)
-2. **Create spec file** — Bundle menu_bar.py as standalone app
-3. **Include dependencies** — Embed Python runtime, rumps, ollama-python
-4. **Create .pkg installer** — macOS Installer with LaunchAgent setup
-5. **Test on clean Mac** — Verify installation without dev tools
+### Pattern 1: Boundary Enforcement via PreToolUse Hook
 
-**Deliverable:** `SecondBrain-Installer.pkg` for distribution
+**What:** Hook intercepts all Write/Edit tool calls and checks if file_path matches 01_-04_ prefix. Exits with code 2 and error message if AI tries to write to human PARA folders.
 
-**Dependencies:** Phase 6 (all components functional)
+**When:** Always active in project settings.
 
----
+**Implementation:**
+```bash
+#!/bin/bash
+INPUT=$(cat)
+FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
 
-## Suggested Build Order Summary
+if echo "$FILE_PATH" | grep -qE "/(01_|02_|03_|04_)"; then
+  echo "AI writes to human PARA folders (01-04) are prohibited. Write to 05_AI_Workspace/ instead." >&2
+  exit 2
+fi
+exit 0
+```
 
-| Phase | Component | External Deps | Build Time | Risk |
-|-------|-----------|---------------|------------|------|
-| 1 | Foundation | None (existing) | 0 days | Low |
-| 2 | Vault Scanner | None | 1-2 days | Low |
-| 3 | Ollama Integration | `ollama-python` | 2-3 days | Medium (model quality) |
-| 4 | Backend Worker | None | 2-3 days | Medium (async refactor) |
-| 5 | Menu Bar App | `rumps` | 1-2 days | Low |
-| 6 | First-Run Wizard | None | 1-2 days | Low |
-| 7 | Packaging | `pyinstaller` | 2-3 days | High (platform quirks) |
+**Configuration:** `.claude/settings.json` → `PreToolUse` matcher `Write|Edit`.
 
-**Total estimated build time:** 9-15 days (assuming serial development)
+### Pattern 2: Progressive Context Loading
 
-**Critical path:** Phase 1 → 2 → 3 → 4 → 5 → 6 → 7
+**What:** Skills load context files (profile, style guide, vault conventions) only when that specific skill is invoked. Not at session start.
 
-**Parallelizable:** Phase 5 (Menu Bar App) can start after Phase 4 wireframe, Phase 6 (Wizard) can develop in parallel with Phase 5
+**When:** Any skill that needs domain context.
 
----
+**How skills reference context:**
+```markdown
+## Dependencies
+Load these files when invoked:
+- `_llm-context/personal/profile.md` — personal context
+- `_llm-context/writing/style-guide.md` — writing voice
+```
 
-## Key Architectural Decisions
+**Why:** Loading all context upfront wastes tokens and hurts performance. One skill = one context load.
 
-### 1. Event-Driven vs Polling for Slack
-**Decision:** Polling (existing pattern)
-**Rationale:**
-- Slack webhooks require public endpoint (not suitable for local-only app)
-- Polling every 2 minutes sufficient for use case (not real-time critical)
-- Existing cron-based polling works, just move to event loop
-- Simpler error handling (retry logic already implemented)
+### Pattern 3: SessionStart as Lightweight State Injection
 
-**Alternative considered:** Slack Events API with ngrok tunnel — rejected due to complexity and dependency on external service
+**What:** SessionStart hook runs a fast shell script that scans the vault for high-signal state (overdue task count, active project names, last digest date) and writes it to stdout as a brief context string.
 
----
+**When:** Every session start (not compact — that uses PostCompact hook).
 
-### 2. Menu Bar Framework: rumps vs pyobjc
-**Decision:** rumps
-**Rationale:**
-- Pythonic API (no Objective-C bridging)
-- Well-maintained, active community
-- Minimal boilerplate for statusbar apps
-- Works with PyInstaller for packaging
+**Output format:**
+```
+=== Vault State (auto-injected) ===
+Overdue tasks: 3
+Active projects: Second Brain v2, CCBH Onboarding
+Last AI digest: 2026-03-13
+Focus today: proactive hooks milestone
+================================
+```
 
-**Alternative considered:** pyobjc (lower-level, more control) — rejected due to steep learning curve
+Claude receives this as pre-session context without any human prompt.
 
----
+### Pattern 4: YAML as Contract Layer
 
-### 3. Process Model: Single vs Multi-Process
-**Decision:** Multi-process (menu bar spawns worker)
-**Rationale:**
-- Isolates UI from I/O failures (worker crash doesn't kill menu bar)
-- Easier to restart worker without re-launching app
-- Menu bar stays responsive during Ollama delays
-- Standard pattern for macOS statusbar apps
+**What:** Every file type has a canonical YAML frontmatter schema defined in templates. Dataview queries reference these exact field names. Skills use these same field names when writing files.
 
-**Alternative considered:** Single-process with threads — rejected due to GIL limitations and complexity
+**When:** Whenever a skill creates a new file in 05_AI_Workspace.
 
----
+**The chain:**
+```
+Template (backend/_templates/) → YAML schema
+Skill writes file → uses template schema
+Dataview queries → reference same field names
+Dashboard renders → live view of correct data
+```
 
-### 4. IPC Mechanism: File-Based vs Sockets
-**Decision:** File-based command queue
-**Rationale:**
-- Simple to implement (write command file, worker polls)
-- No socket port conflicts
-- Persistent across worker restarts
-- Easy to debug (inspect command files)
-
-**Alternative considered:** Unix domain sockets — rejected due to added complexity for minimal benefit
+Breaking a field name in the template breaks the Dataview query. This is the highest-risk coupling point in the system.
 
 ---
 
-### 5. Ollama Model: Llama 3.2 (3B) vs Mistral (7B)
-**Decision:** Llama 3.2 (3B) for initial implementation
-**Rationale:**
-- Fits in MacBook Air M1 8GB RAM
-- Faster inference (< 5s for classification)
-- Good instruction-following for structured output
-- Smaller download size (1.9GB)
+## Anti-Patterns to Avoid
 
-**Alternative considered:** Mistral 7B (better quality) — defer until testing confirms 3B insufficient
+### Anti-Pattern 1: AI Writing to Human PARA Folders
 
----
+**What:** AI skill writes a generated file into 01_Projects/, 02_Areas/, etc.
 
-### 6. Packaging: PyInstaller vs py2app
-**Decision:** PyInstaller
-**Rationale:**
-- Simpler workflow (single-file bundle)
-- Better documentation for CLI apps → GUI transition
-- Active community, macOS support well-tested
-- Easier to debug (less abstraction)
+**Why bad:** Contaminates human knowledge with AI-generated content. Breaks trust. User cannot easily audit what is human vs. AI-written.
 
-**Alternative considered:** py2app (more macOS-native) — may revisit in Phase 7 if PyInstaller has issues
+**Instead:** All AI-generated content goes to 05_AI_Workspace/. PreToolUse hook enforces this.
 
----
+### Anti-Pattern 2: Loading All Context at Session Start
 
-## Risk Mitigation
+**What:** CLAUDE.md imports all profile files, style guides, vault conventions upfront.
 
-### Risk: Ollama classification quality < Claude API
-**Mitigation:**
-- Implement A/B testing (classify with both, compare confidence)
-- Add manual review queue for low-confidence (<0.6) classifications
-- Allow fallback to Claude API via config flag
-- Test on 100-message corpus before full switch
+**Why bad:** Consumes context window before any task. Reduces adherence because instructions drown in irrelevant context.
 
----
+**Instead:** Load context only in the skill that needs it. CLAUDE.md contains only project structure and critical rules (under 200 lines).
 
-### Risk: Menu bar app killed by macOS (memory pressure)
-**Mitigation:**
-- Keep menu bar process minimal (< 50MB resident)
-- Delegate all I/O to worker process
-- Worker can be killed/restarted without UI loss
-- Store state on disk (no critical in-memory data)
+### Anti-Pattern 3: Blocking Hooks for Non-Critical Automation
 
----
+**What:** Using PreToolUse or Stop hooks for logging, analytics, or nice-to-have behaviors that don't need to block execution.
 
-### Risk: Vault scanner performance on large vaults (10k+ files)
-**Mitigation:**
-- Cache results with 6-hour TTL
-- Scan only folder structure (ignore file contents)
-- Run scanner in background thread
-- Limit depth to 5 levels (domain → PARA → subject → category → subcategory)
+**Why bad:** Blocking hooks add latency to every tool call. If the hook script fails, it can interfere with core workflows.
 
----
+**Instead:** Use PostToolUse (non-blocking) for logging and audit. Use `async: true` for fire-and-forget operations. Reserve blocking hooks for true security/integrity requirements.
 
-### Risk: Ollama service not running when app starts
-**Mitigation:**
-- First-run wizard checks Ollama installation
-- Health check detects Ollama down, updates status
-- Menu bar app shows clear error message
-- Worker retries Ollama connection with backoff
+### Anti-Pattern 4: Hardcoded Paths in Hooks
+
+**What:** Hook script references absolute paths like `/Users/richardyu/Library/Mobile Documents/...`.
+
+**Why bad:** Breaks if vault moves. Not portable. Hard to maintain.
+
+**Instead:** Use `$CLAUDE_PROJECT_DIR` for project-relative paths. Reference vault path from a config file or environment variable defined in SessionStart hook using `CLAUDE_ENV_FILE`.
+
+### Anti-Pattern 5: Dataview Queries on Inline Fields Without YAML
+
+**What:** Using Dataview inline fields (`[key:: value]`) scattered in note body instead of YAML frontmatter.
+
+**Why bad:** Skills writing files must know where to put data. YAML frontmatter is a predictable top-of-file location. Inline fields are mixed into content and harder to write programmatically.
+
+**Instead:** All queryable metadata in YAML frontmatter. Inline fields for ad-hoc human annotation only.
+
+### Anti-Pattern 6: Memory Storing Volatile State
+
+**What:** Writing today's task list or current project status to MEMORY.md.
+
+**Why bad:** Memory is loaded fresh every session. Volatile data goes stale immediately and pollutes the 200-line budget.
+
+**Instead:** Memory stores preferences, patterns, and conventions that change slowly. Current state comes from vault scan via SessionStart hook.
 
 ---
 
-### Risk: .pkg installation fails on user machines
-**Mitigation:**
-- Test on clean macOS 10.15, 11, 12, 13 VMs
-- Sign .pkg with Apple Developer ID (avoid Gatekeeper blocks)
-- Include uninstaller script
-- Provide manual installation instructions as fallback
+## Suggested Build Order
+
+Dependencies flow upward — lower items must exist before higher items can be built.
+
+```
+Phase 1: Foundation
+├── Create 05_AI_Workspace/ directory in Obsidian vault
+├── Define YAML frontmatter schema for AI-generated files
+├── Create file templates in backend/_templates/
+└── Add basic Dataview dashboard in 05_AI_Workspace/dashboards/
+
+Phase 2: Boundary Enforcement (before any AI writes)
+├── PreToolUse hook: protect-para-folders.sh
+├── PostToolUse hook: log-ai-writes.sh (audit trail)
+└── Register hooks in .claude/settings.json
+
+Phase 3: Memory & Cross-Session Context
+├── Create memory directory structure
+├── Seed MEMORY.md with vault conventions and key preferences
+├── Create preferences.md and vault-conventions.md
+└── Validate memory loads correctly on session start
+
+Phase 4: SessionStart Context Injection
+├── vault-scan.sh: queries overdue tasks, active projects, last digest date
+├── SessionStart hook: startup matcher → runs vault-scan.sh
+├── SessionStart hook: compact matcher → re-injects critical conventions
+└── Test: verify context appears in Claude's session
+
+Phase 5: Proactive Skills (reads vault, writes to 05_AI_Workspace)
+├── Update daily-digest skill to write output to 05_AI_Workspace/digests/
+├── Create alert-monitor skill with configurable thresholds
+└── Create context-injector skill for on-demand vault summaries
+
+Phase 6: Notification Layer
+├── send-notification.sh: osascript + Slack DM
+├── Wire Notification hook for idle prompts
+└── Wire alert-monitor to notification script
+
+Phase 7: Dashboard Completion
+├── Refine Dataview queries based on actual field usage
+├── Add ai-activity.md dashboard (surfaces all AI writes)
+└── Wire new YAML frontmatter into existing task/project queries
+```
+
+**Critical dependency:** Phase 2 (boundary enforcement) must precede Phase 5 (proactive skills writing files). If AI skills write to vault before the PreToolUse hook is in place, they might accidentally write to human PARA folders.
+
+**Safe to parallelize:** Phase 3 (memory) and Phase 4 (SessionStart hooks) are independent. Phase 1 (05_AI_Workspace structure) can be done anytime before Phase 5.
 
 ---
 
-## Open Questions
+## Integration Points with Existing Architecture
 
-1. **Model selection:** Should we bundle model in .pkg or download on first run?
-   *Recommendation:* Download on first run (model files are 1.9GB+, too large for installer)
+### What Stays Unchanged
 
-2. **Vault path:** Hardcode iCloud path or allow custom?
-   *Recommendation:* Allow custom in first-run wizard (supports non-iCloud vaults)
+- Python backend (entire backend/_scripts/ — mature, 259 tests)
+- Obsidian vault structure (01-04 PARA folders)
+- Existing 9 skills (capture, surfacing, writing, research, meta)
+- Existing 7 commands (today, weekly, new-task, pipeline, stuck, doable, learned)
+- _llm-context/ progressive disclosure pattern
 
-3. **LaunchAgent vs Login Item:** Which autostart mechanism?
-   *Recommendation:* LaunchAgent (survives restarts, doesn't require user login)
+### What Gets Modified
 
-4. **Logging verbosity:** Console logs or GUI log viewer?
-   *Recommendation:* Both (console for debugging, GUI for user-friendly access)
+| Existing Component | What Changes |
+|-------------------|--------------|
+| `daily-digest` skill | Add write path to `05_AI_Workspace/digests/daily/` alongside current `daily/[date].md` |
+| `.claude/commands/today.md` | Add hook verification step: confirm protect-para hook is active |
+| `backend/_templates/` | Add AI-generated file templates with required YAML schema |
+| `CLAUDE.md` (project-level) | Add 05_AI_Workspace rules and boundary enforcement note |
 
-5. **Update mechanism:** Auto-update or manual download?
-   *Recommendation:* Defer to post-MVP (manual download from GitHub releases initially)
+### What Gets Added
 
----
-
-## Conclusion
-
-The architecture cleanly separates concerns:
-- **Menu bar app** = UI and lifecycle
-- **Backend worker** = I/O and orchestration
-- **Ollama client** = LLM abstraction
-- **Vault scanner** = dynamic discovery
-- **State manager** = persistence
-
-This enables independent testing, phased rollout, and clear debugging paths. The build order minimizes risk by validating Ollama integration (Phase 3) before investing in UI (Phase 5) and packaging (Phase 7).
-
-**Next steps:**
-1. Validate Phase 1 (existing backend) works as library imports
-2. Implement Phase 2 (vault scanner) to enable vault-aware prompts
-3. Test Ollama classification quality in Phase 3 before committing to full migration
+| New Component | Purpose |
+|---------------|---------|
+| `05_AI_Workspace/` (vault) | AI content store |
+| `.claude/hooks/` (project) | Hook scripts |
+| `.claude/settings.json` (project) | Hook registrations |
+| `~/.claude/projects/.../memory/` | Cross-session memory |
+| `skills/proactive/` | New proactive skill category |
 
 ---
 
-*Architecture research completed: 2026-01-30*
+## Confidence Assessment
+
+| Area | Confidence | Source |
+|------|------------|--------|
+| Claude Code hooks API (events, JSON schema, exit codes) | HIGH | Official docs at code.claude.com/docs/en/hooks |
+| Claude Code memory (CLAUDE.md, auto memory, scope, 200-line limit) | HIGH | Official docs at code.claude.com/docs/en/memory |
+| Claude Code skills (frontmatter schema, context vs. fork, allowed-tools) | HIGH | Official docs at code.claude.com/docs/en/skills |
+| Obsidian Dataview (YAML indexing, query types) | HIGH | Official docs at blacksmithgu.github.io/obsidian-dataview/ |
+| 05_AI_Workspace design (new, not yet built) | MEDIUM | Pattern extrapolated from constraints + Obsidian best practices |
+| Hook script performance at scale | MEDIUM | Known behavior, not tested in this vault |
+| Auto memory behavior with subagents | MEDIUM | Documented in official docs but not verified in practice |
+| Obsidian Canvas interaction patterns | LOW | Not researched — Canvas not currently in skill architecture |
+
+---
+
+## Sources
+
+- Claude Code Hooks reference: https://code.claude.com/docs/en/hooks (HIGH confidence — official docs, fetched 2026-03-14)
+- Claude Code Hooks guide: https://code.claude.com/docs/en/hooks-guide (HIGH confidence — official docs, fetched 2026-03-14)
+- Claude Code Memory reference: https://code.claude.com/docs/en/memory (HIGH confidence — official docs, fetched 2026-03-14)
+- Claude Code Skills reference: https://code.claude.com/docs/en/skills (HIGH confidence — official docs, fetched 2026-03-14)
+- Obsidian Dataview: https://blacksmithgu.github.io/obsidian-dataview/ (HIGH confidence — official plugin docs, fetched 2026-03-14)
+- Existing project structure: second-brain/.claude/ (HIGH confidence — direct file system inspection)
+- Existing skills: second-brain/.claude/skills/ (HIGH confidence — direct file system inspection)
+- Claude Code hooks guide community: https://code.claude.com/docs/en/hooks-guide (HIGH confidence — official)

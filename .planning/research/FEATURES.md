@@ -1,770 +1,152 @@
-# Slack-to-Knowledge-Base Features Research
+# Feature Landscape: Hybrid Open Brain / Second Brain OS
 
-**Research Date:** 2026-01-30
-**Context:** Adding LLM classification intelligence to existing Slack → Obsidian pipeline
-**Scope:** Identify table stakes, differentiators, and anti-features for PARA-based classification
-
----
-
-## Executive Summary
-
-Slack-to-knowledge-base tools fall into three categories:
-1. **Search/retrieval** (Guru, Tettra, Notion AI) - Help find existing knowledge
-2. **Auto-documentation** (Donut, Slite) - Convert conversations into documentation
-3. **Personal knowledge capture** (Mem, Reflect, this system) - Organize individual thoughts
-
-**Our position:** Personal knowledge capture with PARA routing + local-first privacy.
-
-**Key insight:** Classification accuracy matters less than classification transparency + easy correction. Users tolerate 80% accuracy if they can fix mistakes in <5 seconds and trust the system won't silently corrupt their vault.
+**Domain:** AI-powered personal knowledge management with proactive monitoring, structured data, and persistent memory
+**Researched:** 2026-03-14
+**Milestone context:** Subsequent — adding proactive AI, structured data, dashboards, and persistent memory to an existing Obsidian + Claude Code system
+**Overall confidence:** HIGH (core features), MEDIUM (specific implementation patterns)
 
 ---
 
-## Feature Categories
+## Table Stakes
 
-### 1. Table Stakes (Must Have or Users Frustrated)
+Features users expect. Missing = system feels incomplete.
 
-These are baseline expectations. Missing any of these creates immediate friction.
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| **Persistent AI memory across sessions** | Without this, Claude starts blank every time; defeats the "knows me deeply" promise | Med | Claude Code memory system (not vault-based); session context, preferences, decisions |
+| **Morning briefing generation** | Consolidates scattered inputs into one daily orientation; standard in ChatGPT Pulse, Dume.ai, BriefingAM, Granola | Med | Pulls calendar, tasks, open items, follow-ups; outputs to Obsidian daily note |
+| **Structured contact records with rich metadata** | People tracking without schema (name, company, title, email) is unusable; expected from any CRM | Low | YAML frontmatter fields; phone, email, title, company, tags |
+| **Meeting → person linkage** | Standard in every PKM CRM (Obsibrain, Tana, Notion): link attendees to meeting notes via [[NAME]] | Low | Obsidian wikilinks handle this natively |
+| **Dataview-powered dashboards** | Users of Obsidian expect queryable views over YAML; Dataview is the de facto standard | Med | Tables of tasks by status, people by last-contact, projects by priority |
+| **Inbox processing / triage automation** | Capture without processing creates hoarding; triage is the table-stakes automation in every PKM | Med | Existing skill; needs to surface stale inbox items proactively |
+| **Weekly review generation** | Standard in PARA, GTD, and every productivity system; Claude Code can automate synthesis | Med | Existing skill; needs enrichment with people and project metadata |
+| **YAML frontmatter schema for people, projects, tasks** | Without consistent schema, Dataview queries fail; schema is the foundation for every other feature | Low | Define once in skill context; enforce via Templater templates |
+| **Task creation with rich metadata** | Tasks without due date, project link, priority are not actionable; table stakes in any task manager | Low | Dataview-compatible fields: due, priority, project, status, tags |
+| **AI workspace separation (05_AI_Workspace)** | Without a dedicated write zone, AI outputs pollute the human vault; separation is architectural must-have | Low | Folder boundary; Claude never writes to 01-04 |
 
-#### 1.1 Message Ingestion
-**Complexity:** Low
-**Status:** ✓ Implemented
-
-- Fetch messages from designated Slack channel
-- Handle rate limits and retries
-- Idempotency (don't duplicate on re-run)
-- Support threaded replies
-- Filter bot messages
-
-**Why table stakes:** Without reliable ingestion, nothing else matters. Users need to trust that posting to Slack = eventual processing.
-
-**Dependencies:** None
-
----
-
-#### 1.2 Basic Classification
-**Complexity:** Medium
-**Status:** ✓ Implemented (simple 4-category)
-
-- Route to 2-5 stable categories (people/projects/ideas/admin OR Projects/Areas/Resources/Archives)
-- Return confidence score
-- Handle ambiguous input gracefully
-- Classification prompt that matches user's mental model
-
-**Why table stakes:** This is the core value prop. Without classification, it's just a manual filing system with extra steps.
-
-**Dependencies:** LLM API or local model
+**Complexity note:** "Low" here means low implementation effort given the existing stack (Obsidian + Claude Code + Dataview). All Low items are YAML schemas, Templater templates, or skill additions — not new infrastructure.
 
 ---
 
-#### 1.3 Markdown File Creation
-**Complexity:** Low
-**Status:** ✓ Implemented
+## Differentiators
 
-- Create files with YAML frontmatter
-- Sanitize filenames (no path traversal, invalid chars)
-- Handle duplicate filenames (append timestamp)
-- Preserve original capture text
-- Write to correct folder based on classification
+Features that set this hybrid system apart. Not expected by most PKM users, but uniquely valuable given the Open Brain / Second Brain architecture.
 
-**Why table stakes:** Output must be valid Obsidian markdown or the vault becomes unusable.
-
-**Dependencies:** Filesystem access
-
----
-
-#### 1.4 Confirmation Feedback
-**Complexity:** Low
-**Status:** ✓ Implemented
-
-- Reply in Slack with where the note was filed
-- Show confidence score
-- Include filename/link for reference
-- Fast feedback (<30 seconds)
-
-**Why table stakes:** Without feedback, users don't trust the system and keep checking manually.
-
-**Dependencies:** Slack API write access
+| Feature | Value Proposition | Complexity | Notes |
+|---------|-------------------|------------|-------|
+| **Proactive pattern detection across vault** | Surfaces "you haven't followed up with X in 30 days" or "this project has no open tasks" — AI as active monitor, not passive retrieval | High | Requires scheduled or hook-triggered scan; cross-references people, tasks, projects; outputs to briefing |
+| **Session hooks (start/end automation)** | Eliminates manual invocation — system automatically surfaces stale tasks on start, updates dashboards on end; rare in PKM tools | Med | Claude Code SessionStart hook; end-of-day skill chained to session close |
+| **360-degree people hub (aggregated relationship context)** | Automatically aggregates all meetings, tasks, and mentions for a person across the vault via Dataview; no manual linking required | Med | Dataview query on each person note pulling all notes with [[PersonName]] |
+| **Insights skill (weekly pattern analysis)** | Goes beyond summarization — detects drift, overcommitment, neglected areas; more like a thinking partner than a reporter | High | Claude reads vault-wide context, compares against stated goals; outputs flagged observations |
+| **Canvas-based visual weekly review** | Spatial layout showing projects, people, tasks in relationship — not just a list | Med | Obsidian Canvas; Claude generates via file write to 05_AI_Workspace |
+| **Open Brain / Second Brain write boundary** | AI writes to 05_AI_Workspace; human vault (01-04) is read-only for Claude; unique architectural decision that prevents AI "pollution" of human thinking | Low | Enforced via CLAUDE.md vault context; no other system formalizes this boundary |
+| **Skills as institutional memory** | Each skill encodes repeatable process (like Anthropic's internal pattern); skills compound — each session generates new permanent capabilities | Med | Existing skill system; differentiator is treating skills as first-class knowledge artifacts |
+| **Context-aware briefing from vault history** | Morning briefing references *your* notes, decisions, and patterns — not generic news. "Based on what you wrote last week about X..." | High | Depends on persistent memory + vault semantic search; more differentiated than calendar/email-only briefings |
+| **Structured data in Markdown (not a database)** | Everything queryable via Dataview stays in local `.md` files; portable, no vendor lock-in, survives tool switching | Low | Architectural choice already made; worth naming explicitly as a differentiator vs. Notion/Supabase |
+| **Alert routing (Slack + macOS + Obsidian)** | Proactive alerts delivered where user already is; not buried in a dashboard they have to open | Med | Existing Slack integration; extend with macOS notifications and daily note injection |
 
 ---
 
-#### 1.5 Correction Mechanism
-**Complexity:** Medium
-**Status:** ✓ Implemented (`fix:` command)
+## Anti-Features
 
-- Allow user to override classification
-- Move file to correct location
-- Update metadata/frontmatter
-- Confirm correction in Slack
-- Preserve original capture
+Features to explicitly NOT build. Common mistakes in the PKM / AI agent domain.
 
-**Why table stakes:** No classifier is perfect. Without corrections, misclassifications become permanent vault pollution.
-
-**Dependencies:** State management (message-to-file mapping)
-
----
-
-#### 1.6 State Management
-**Complexity:** Medium
-**Status:** ✓ Implemented
-
-- Track processed messages (prevent duplicates)
-- Map messages to created files (enable corrections)
-- Handle concurrent access safely
-- Persist across restarts
-- Cleanup old state (avoid unbounded growth)
-
-**Why table stakes:** Without state, system either duplicates work or loses ability to correct mistakes.
-
-**Dependencies:** Atomic file operations with locking
+| Anti-Feature | Why Avoid | What to Do Instead |
+|--------------|-----------|-------------------|
+| **Automatic AI writes to human vault folders (01-04)** | Destroys trust in your own notes; you stop knowing what you wrote vs. what AI generated; impossible to undo at scale | Hard boundary: AI writes only to `05_AI_Workspace`; reads everywhere |
+| **External database (Supabase, SQLite, Postgres)** | Breaks data locality promise; adds infrastructure dependency; vault becomes partial source of truth | YAML frontmatter + Dataview; everything in `.md` files |
+| **React dashboards / web apps** | Splits attention between Obsidian and a browser tab; defeats the "all in Obsidian" UX goal | Obsidian Canvas + Dataview notes; dashboards live in the vault |
+| **Auto-tagging / auto-categorizing without human review** | Creates the "Collector's Fallacy" at scale — AI files thousands of notes you never review; gives false sense of organization | Triage skill flags items for human decision; AI suggests, human confirms |
+| **Full vault context loading into every prompt** | Destroys performance and coherence; LLMs perform worse with irrelevant context; expensive | Progressive context loading (`_llm-context/`); skill-specific context only |
+| **Morning briefing that only covers external sources (news, email)** | Misses the core value proposition — personal context. Generic briefings are a commodity (ChatGPT Pulse does this) | Briefing must primarily reference vault content: open tasks, follow-ups, recent notes, stated goals |
+| **Perfect taxonomy upfront** | "Folder Anxiety" — spending hours designing hierarchy before using it; leads to abandonment (documented anti-pattern across Notion, Obsidian communities) | Start with PARA (already in place); add schema fields when a real use case demands them |
+| **AI that replaces thinking (pure consumption mode)** | PKM value comes from engagement and synthesis; outsourcing cognition produces "generic, lifeless output"; noted explicitly in community research | AI as thinking partner with human review loop; all AI-generated content tagged `<ai-generated>` for inspection |
+| **Polling loops / aggressive monitoring** | Background processes that constantly scan vault degrade system performance; macOS battery impact | Hook-triggered (SessionStart) or scheduled (cron) at reasonable intervals (daily, not per-minute) |
+| **Multi-user / team features** | Scope creep; personal system with personal data and personal memory doesn't generalize to teams without rearchitecting | Personal only; explicitly out of scope in PROJECT.md |
+| **Mobile app development** | Obsidian mobile handles vault access; building a separate mobile app is significant effort with marginal gain | Use Obsidian mobile + Obsidian Sync (or iCloud); no custom mobile development |
 
 ---
 
-#### 1.7 Error Handling & Logging
-**Complexity:** Medium
-**Status:** ✓ Implemented
+## Feature Dependencies
 
-- Log all processing attempts (audit trail)
-- Capture failures with full context
-- Dead letter queue for manual review
-- Don't silently drop messages
-- Surface errors to user (DM alerts)
+Dependencies map shows which features must be built before others.
 
-**Why table stakes:** Users need to trust the system. Silent failures = abandonment.
+```
+YAML frontmatter schema (people, projects, tasks)
+  └── Dataview-powered dashboards
+      └── 360-degree people hub
+      └── Dashboard skill (generate/refresh)
+  └── Structured contact records
+      └── People/CRM skill
+          └── Follow-up monitoring (proactive alerts)
 
-**Dependencies:** Logging infrastructure, alert mechanism
+Persistent AI memory (Claude Code memory system)
+  └── Context-aware morning briefing
+  └── Pattern detection / Insights skill
+  └── Session continuity ("pick up where you left off")
 
----
+AI workspace folder (05_AI_Workspace)
+  └── All AI write operations (briefings, dashboards, insights)
+  └── Open Brain / Second Brain boundary enforcement
 
-### 2. Differentiators (Competitive Advantage)
+Session hooks (SessionStart / SessionEnd)
+  └── Inbox surface on start
+  └── Dashboard refresh on end
+  └── End-of-day update skill
 
-These features separate good implementations from great ones.
+Morning briefing skill
+  ← depends on: YAML schema, persistent memory, AI workspace folder
+  ← optionally enhanced by: proactive pattern detection
 
-#### 2.1 PARA-Aware Classification
-**Complexity:** High
-**Status:** ⏳ Planned (current milestone)
+Proactive pattern detection (Insights skill)
+  ← depends on: YAML schema, persistent memory, structured contact records
+  ← produces: alerts, briefing injections, Canvas visual review
 
-- Distinguish Projects (has deadline) from Areas (ongoing)
-- Route Resources (reference material) separately from Archives
-- Understand temporal vs perpetual context
-- Classify across domain dimensions (Personal/Work/Side Project)
+Alert system (Slack + macOS + Obsidian)
+  ← depends on: Existing Slack integration (v1.0), AI workspace folder
+  ← triggered by: Insights skill, session hooks, morning briefing
+```
 
-**Why differentiating:** Most tools use flat categories or tags. PARA routing requires understanding project lifecycle and temporal boundaries. This matches how GTD/BASB users think.
-
-**Implementation challenges:**
-- Distinguishing "project" (has end state) from "area" (ongoing responsibility)
-- Detecting when something is reference material vs actionable
-- Determining domain from context (work vs personal vs side project)
-
-**Dependencies:**
-- Richer prompt engineering
-- Possibly multi-stage classification
-- Domain vocabulary scanning from vault
-
-**Reference:** Tiago Forte's PARA method (Projects/Areas/Resources/Archives)
-
----
-
-#### 2.2 Dynamic Vault Scanning
-**Complexity:** High
-**Status:** ⏳ Planned
-
-- Scan existing vault structure at startup
-- Build domain/PARA/subject map from actual folders
-- Keep classification vocabulary current as vault evolves
-- Periodic refresh (daily or on-demand)
-- Discover subject categories without hardcoding
-
-**Why differentiating:** Static configuration breaks as vaults grow. Dynamic scanning means classification vocabulary grows with the user's knowledge graph.
-
-**Implementation challenges:**
-- Parsing folder structure reliably
-- Distinguishing structure from content folders (e.g., `_templates`)
-- Handling inconsistent naming
-- Performance at scale (1000+ folders)
-- Caching to avoid re-scanning on every message
-
-**Dependencies:**
-- Filesystem traversal
-- Configuration for ignored paths
-- Caching layer
+**Critical path:** YAML schema → Dataview dashboards → AI workspace folder → persistent memory → morning briefing → proactive monitoring
 
 ---
 
-#### 2.3 Subject Classification
-**Complexity:** Medium-High
-**Status:** ⏳ Planned
+## MVP Recommendation
 
-- Route to subject subfolder within PARA category
-- Learn subjects from existing vault structure
-- Handle multi-subject ambiguity
-- Default to general folder if unclear
+For this milestone (subsequent), the existing system already has capture, classification, and 9 skills. The MVP here means "minimum set to feel like a proactive OS rather than a reactive tool."
 
-**Why differentiating:** Flat PARA is still too broad. "Projects" with 50 items is overwhelming. Subject folders (e.g., Projects/Health/, Projects/App Development/) add one more layer of automatic organization.
+**Prioritize first (unlocks everything else):**
+1. YAML frontmatter schema for people, projects, tasks — foundation for all queries
+2. AI workspace folder (05_AI_Workspace) with boundary rules in CLAUDE.md — enables AI write operations
+3. Persistent AI memory (Claude Code memory system) — enables session continuity
 
-**Implementation challenges:**
-- Subject vocabulary is personal and emergent
-- Subject boundaries are fuzzy (is "learning science" Research or Professional Development?)
-- Multi-subject notes (solution: pick primary, add tags for secondary)
+**Prioritize second (core daily value):**
+4. Morning briefing skill — most visible daily value; references vault + calendar + open tasks
+5. Session hooks (SessionStart: surface stale tasks; SessionEnd: update dashboards) — removes manual invocation
+6. Structured contact records + 360-degree people hub (Dataview query on person notes)
 
-**Dependencies:**
-- Vault scanner (to discover subjects)
-- Extended classification prompt
+**Prioritize third (differentiating proactive layer):**
+7. Insights/pattern detection skill — flags drift, neglected follow-ups, overcommitment
+8. Alert routing (Slack + macOS notifications) — delivers proactive outputs where user already is
+9. Canvas-based visual weekly review — spatial orientation, not just lists
 
----
-
-#### 2.4 Entity Extraction & Wikilinks
-**Complexity:** Medium
-**Status:** ✓ Implemented
-
-- Extract people and project names from text
-- Auto-generate `[[wikilinks]]` in body
-- Create stub files for new entities
-- Build knowledge graph automatically
-- Link related notes bidirectionally
-
-**Why differentiating:** Most tools create isolated documents. Wikilinks create a network. Over time, this compounds into a genuine "second brain" instead of a dumping ground.
-
-**Enhancement opportunities:**
-- Extract more entity types (books, companies, concepts)
-- Confidence scores for entity extraction
-- Alias matching (Sara/Sarah, Project X/ProjectX)
-
-**Dependencies:**
-- Entity recognition (via LLM)
-- Stub file templates
+**Defer to post-MVP:**
+- Enhanced task metadata richness (add fields incrementally as real use cases emerge; avoid schema over-engineering upfront)
+- Daily news briefing integration (external sources are table stakes for generic briefing tools, not differentiated here)
+- Multi-agent separation (specialized agents per domain: people, projects, research — useful but complex; start with single agent with domain-specific skills)
 
 ---
 
-#### 2.5 Confidence Thresholds & Review Queue
-**Complexity:** Medium
-**Status:** ✓ Partially implemented (logs low confidence, but no review UI)
-
-- Set confidence threshold (e.g., 0.6)
-- Below threshold → hold for review
-- Daily digest includes needs-review items
-- User approves/corrects in batch
-- Learn from corrections (future: feedback loop)
-
-**Why differentiating:** Prevents bad classifications from polluting vault. Shows respect for user's trust.
-
-**Enhancement opportunities:**
-- Dedicated review UI (vs scanning inbox logs)
-- One-click approve in Slack
-- Track fix patterns to improve prompts
-
-**Dependencies:**
-- State management for pending items
-- Review interface (Slack interactive messages or Obsidian dashboard)
-
----
-
-#### 2.6 Local LLM (Ollama) Support
-**Complexity:** High
-**Status:** ⏳ Planned
-
-- Privacy: No data leaves machine
-- Offline capability: Works without internet
-- Cost: No API fees
-- Model selection: Llama 3.2 (3B) or Mistral
-- Trade-off: Slightly lower accuracy for privacy/cost
-
-**Why differentiating:** Privacy-conscious users won't use cloud APIs for personal thoughts. Local LLM = trust.
-
-**Implementation challenges:**
-- Model selection (accuracy vs resource usage)
-- Prompt engineering for smaller models
-- Setup complexity (Ollama installation)
-- Performance on M1 MacBook Air (8GB RAM)
-
-**Dependencies:**
-- Ollama installed separately
-- Model download and management
-- Fallback to cloud if local unavailable
-
----
-
-#### 2.7 Daily Digest & Weekly Review
-**Complexity:** Medium
-**Status:** ✓ Implemented
-
-- Morning summary of yesterday's captures
-- Weekly rollup with patterns and insights
-- Surface stale projects (not touched in 14+ days)
-- Highlight pending follow-ups
-- Delivered via Slack DM
-
-**Why differentiating:** Capture is 10% of the value. Surfacing is 90%. Most tools stop at capture.
-
-**Enhancement opportunities:**
-- AI-generated insights (patterns across captures)
-- Suggested connections between notes
-- "Automation opportunities" detection
-- Prioritization recommendations
-
-**Dependencies:**
-- Vault scanning
-- LLM for summarization
-- Slack DM delivery
-
----
-
-#### 2.8 Multi-Domain Routing
-**Complexity:** Medium
-**Status:** ⏳ Planned (current milestone)
-
-- Route to Personal/CCBH/Just Value domains
-- Each domain has independent PARA structure
-- Infer domain from content (project names, keywords)
-- Support explicit domain hints (prefix or tagging)
-
-**Why differentiating:** Knowledge workers juggle multiple contexts. Mixing personal/work/side-project notes creates cognitive overhead. Clean separation = mental clarity.
-
-**Implementation challenges:**
-- Domain inference (keywords? tone? explicit markers?)
-- Handling ambiguous cases (is "meeting notes" work or personal?)
-- Balancing automatic routing with explicit overrides
-
-**Dependencies:**
-- Domain vocabulary (scanned or configured)
-- Extended classification prompt
-
----
-
-#### 2.9 Health Monitoring & Alerts
-**Complexity:** Low
-**Status:** ✓ Implemented
-
-- Track last successful run
-- Alert if system hasn't processed messages in N hours
-- Alert if failure rate exceeds threshold (3+ per day)
-- Send DM alerts via Slack
-- Log health check results
-
-**Why differentiating:** Silent failure = abandoned tool. Proactive alerts = trust.
-
-**Dependencies:**
-- State management (run history)
-- Slack DM capability
-
----
-
-### 3. Nice-to-Haves (Not Critical)
-
-Features that add polish but aren't necessary for core value prop.
-
-#### 3.1 Natural Language Dates
-**Complexity:** Low
-**Status:** Not implemented
-
-- Parse "next Tuesday", "in 2 weeks", "EOD Friday"
-- Convert to ISO dates for frontmatter
-- Support relative dates ("tomorrow", "next month")
-
-**Why nice-to-have:** Users can type "2026-02-15" if needed. Convenience, not necessity.
-
-**Dependencies:** Date parsing library (dateutil, parsedatetime)
-
----
-
-#### 3.2 Rich Media Handling
-**Complexity:** Medium
-**Status:** Not implemented
-
-- Extract images/attachments from Slack
-- Download and store in vault `_attachments/` folder
-- Embed in markdown with `![]()`
-- Handle file size limits
-
-**Why nice-to-have:** Text captures are 90% of usage. Images add complexity.
-
-**Dependencies:**
-- Slack file download API
-- Storage management
-- Obsidian asset handling
-
----
-
-#### 3.3 Smart Filename Generation
-**Complexity:** Low
-**Status:** ✓ Partially implemented (basic kebab-case)
-
-- Generate memorable filenames from content
-- Avoid generic names like "idea-123"
-- Use dates for temporal notes
-- Deduplicate intelligently
-
-**Why nice-to-have:** Filenames matter for Obsidian graph view, but users can rename in vault.
-
-**Enhancement opportunities:**
-- Context-aware naming (e.g., "meeting-sarah-q2-roadmap" vs "idea-automation")
-
----
-
-#### 3.4 Template Support
-**Complexity:** Medium
-**Status:** ✓ Implemented (basic templates)
-
-- Use different templates per destination type
-- Support variables in templates
-- Custom frontmatter schemas
-- Template per domain or subject
-
-**Why nice-to-have:** Default templates work. Power users want customization.
-
-**Dependencies:**
-- Template engine (Jinja2) or simple string replacement
-
----
-
-#### 3.5 Bulk Operations
-**Complexity:** Medium
-**Status:** Not implemented
-
-- Bulk reclassify (select multiple, move to new category)
-- Bulk tag application
-- Batch corrections via Slack thread
-- "Undo last 5 classifications"
-
-**Why nice-to-have:** Single-item corrections are sufficient for 95% of cases.
-
-**Dependencies:**
-- UI for selection (Slack interactive messages or Obsidian dashboard)
-
----
-
-#### 3.6 Search Integration
-**Complexity:** Medium
-**Status:** Not implemented
-
-- Search vault from Slack ("find notes about Sarah")
-- Return snippets with links
-- Full-text search across all notes
-- Filter by domain/PARA/subject/date
-
-**Why nice-to-have:** Obsidian's native search is excellent. Adding Slack search is redundant.
-
-**Dependencies:**
-- Full-text indexing (ripgrep, SQLite FTS)
-- Slack command interface
-
----
-
-#### 3.7 Voice Capture
-**Complexity:** High
-**Status:** Not implemented
-
-- Voice message in Slack → transcription → classification
-- Support voice notes from mobile
-- Handle transcription errors gracefully
-
-**Why nice-to-have:** Slack already supports voice messages. Transcription via Whisper API is feasible but adds complexity and latency.
-
-**Dependencies:**
-- Whisper API or local transcription
-- Audio file download from Slack
-
----
-
-### 4. Anti-Features (Deliberately NOT Building)
-
-These are features we could build but shouldn't. They add complexity without commensurate value or violate core principles.
-
-#### 4.1 Real-Time Sync
-**Why anti-feature:** Event-driven with backlog processing is sufficient. Messages queue in Slack. Processing lag of 2-5 minutes is acceptable for a personal knowledge system.
-
-**Cost if built:** Webhook infrastructure, public endpoint, SSL certificates, always-on server.
-
----
-
-#### 4.2 Multi-User Support
-**Why anti-feature:** Personal knowledge systems are inherently single-user. Multi-user = shared vaults = permissions = complexity explosion.
-
-**Cost if built:** User management, permissions, conflict resolution, privacy boundaries.
-
----
-
-#### 4.3 Custom LLM Training
-**Why anti-feature:** Off-the-shelf models (Llama 3.2, Mistral) handle classification well. Custom training requires datasets, GPU infrastructure, ongoing maintenance.
-
-**Cost if built:** Data pipeline, training infrastructure, model versioning, drift detection.
-
----
-
-#### 4.4 iOS Native App (for Capture)
-**Why anti-feature:** Slack's iOS app already handles mobile capture perfectly. Building a native app duplicates functionality for marginal UX gain.
-
-**Cost if built:** Swift/SwiftUI development, App Store management, push notifications, background processing.
-
-**Note:** The `ios/` folder exists for initial exploration, but Slack mobile is sufficient.
-
----
-
-#### 4.5 Cloud Sync of State
-**Why anti-feature:** Local-first principle. State lives on machine, vault syncs via Obsidian iCloud. Adding cloud state = privacy leak, sync conflicts, infrastructure costs.
-
-**Cost if built:** Backend API, database, sync logic, conflict resolution, auth.
-
----
-
-#### 4.6 Advanced Analytics
-**Why anti-feature:** Daily digest and weekly review provide sufficient insight. Dashboards with graphs, heatmaps, time-tracking add visual polish but don't change behavior.
-
-**Cost if built:** Data aggregation, visualization library, dashboard UI, query optimization.
-
----
-
-#### 4.7 Integration with Other Note Apps (Notion, Roam, Logseq)
-**Why anti-feature:** Obsidian's markdown + local files are universal. Supporting other formats = maintaining N integrations, each with breaking changes.
-
-**Cost if built:** API adapters for each platform, schema translation, testing matrix explosion.
-
----
-
-#### 4.8 Automatic Summarization of Every Capture
-**Why anti-feature:** Daily digest already summarizes. Per-note summarization is redundant when original capture is <500 words.
-
-**Cost if built:** LLM API costs per message, latency increase, prompts to maintain.
-
----
-
-#### 4.9 Link Preview Generation
-**Why anti-feature:** When URLs are pasted, extract title/description/image. This is eye candy. Obsidian already renders markdown links.
-
-**Cost if built:** Web scraping, rate limiting, metadata extraction, storage.
-
----
-
-## Classification Accuracy: What Works
-
-Based on research into LLM classification for personal knowledge systems:
-
-### What Makes Classification Accurate
-
-1. **Clear category definitions**
-   - Provide concrete examples in prompt
-   - Define boundaries between categories
-   - Use user's own language (not academic jargon)
-
-2. **Context from vault**
-   - Include list of existing projects/areas when classifying
-   - Reference user's subject taxonomy
-   - Show examples of similar notes (few-shot learning)
-
-3. **Explicit signals in capture**
-   - Prefixes: "project:", "idea:", "admin:"
-   - Temporal markers: "due Friday", "next quarter" → suggests project
-   - Tone: questions/speculation → ideas, concrete tasks → admin
-
-4. **Multi-stage classification**
-   - Stage 1: Domain (Personal/Work/Side Project)
-   - Stage 2: PARA type (Projects/Areas/Resources/Archives)
-   - Stage 3: Subject folder
-   - Each stage narrows context for next
-
-5. **Confidence calibration**
-   - Don't just return 0.9 for everything
-   - Low confidence when ambiguous → hold for review
-   - Train on correction feedback (future enhancement)
-
-### What Doesn't Work
-
-1. **Too many categories** (>10)
-   - Accuracy drops exponentially with category count
-   - Users also struggle with >10 mental buckets
-
-2. **Vague category names**
-   - "Miscellaneous", "Other", "General" → dumping grounds
-
-3. **No feedback loop**
-   - If corrections don't inform future classifications, same mistakes repeat
-
-4. **Single-shot classification**
-   - Trying to determine domain + PARA + subject in one prompt = worse results than sequential classification
-
-5. **Ignoring user corrections**
-   - Users fix misclassifications, but system doesn't learn → frustration
-
----
-
-## PARA-Specific Classification Challenges
-
-### Projects vs Areas
-**Challenge:** Both are work-related, but projects have end states.
-
-**Signals for Projects:**
-- Mentions deadline or timeline
-- Phrased as noun + verb ("Website redesign", "Q2 planning")
-- Has next action or milestone
-- Temporary by nature
-
-**Signals for Areas:**
-- Ongoing responsibility ("Health", "Finances", "Team management")
-- No end date
-- Standards to maintain rather than goals to achieve
-
-**Example ambiguity:**
-- "Improve marketing" → Area (ongoing optimization)
-- "Launch marketing campaign" → Project (has end state)
-
----
-
-### Resources vs Archives
-**Challenge:** Both are reference material.
-
-**Signals for Resources:**
-- Currently relevant
-- Actively referenced
-- Might need again
-
-**Signals for Archives:**
-- Completed project artifacts
-- Historical records
-- No longer active but worth keeping
-
-**Default rule:** Classify as Resources. Archive is a manual action (user decides when something is truly done).
-
----
-
-### Cross-Domain Ambiguity
-**Challenge:** "Meeting with Sarah" could be Personal (friend), CCBH (colleague), or Just Value (client).
-
-**Signals for domain:**
-- Keywords: "client", "work", "team" → work domain
-- Relationship context from existing vault (scan people/ folders)
-- Time/location: "office", "Slack call" → work
-
-**Fallback:** Prompt user to add domain prefix if ambiguous.
-
----
-
-## Recommended Phasing
-
-Based on complexity and dependencies:
-
-### Phase 1: Foundation (Current)
-- ✓ Message ingestion
-- ✓ Basic 4-category classification
-- ✓ Markdown creation
-- ✓ Confirmation feedback
-- ✓ Correction mechanism
-- ✓ State management
-- ✓ Error handling
-
-### Phase 2: Intelligence (Current Milestone)
-- ⏳ Dynamic vault scanning
-- ⏳ PARA-aware classification
-- ⏳ Multi-domain routing
-- ⏳ Subject classification
-- ⏳ Local LLM (Ollama)
-
-### Phase 3: Polish
-- Confidence thresholds with review queue
-- Smart filename generation improvements
-- Natural language date parsing
-- Enhanced entity extraction (books, concepts)
-
-### Phase 4: Learning
-- Feedback loop from corrections
-- Pattern detection in misclassifications
-- Prompt tuning based on usage
-- User-specific prompt customization
-
----
-
-## Success Metrics
-
-### Table Stakes Metrics
-- **Uptime:** >99% (no missed messages due to system failure)
-- **Feedback latency:** <30 seconds from Slack post to confirmation
-- **Crash rate:** <1% of messages (rest go to dead letter queue)
-
-### Differentiator Metrics
-- **Classification accuracy:** >80% (measured by fix: rate)
-- **Review queue size:** <5 items per day (low confidence holds)
-- **Correction time:** <5 seconds (fix: command to confirmation)
-- **Trust score:** Subjective, measured by user willingness to capture sensitive thoughts
-
-### Anti-Metrics (Things We Don't Optimize For)
-- Real-time latency (2-minute polling is fine)
-- Multi-platform support (macOS only)
-- Scalability to 1000s of users (single user)
-
----
-
-## Competitive Landscape
-
-### Search/Retrieval Tools
-- **Guru:** Team knowledge base, Slack search integration
-- **Tettra:** Wiki + Slack bot for Q&A
-- **Notion AI:** Search across workspace
-
-**Our differentiation:** We're capture-first, not search-first. These tools help teams find existing knowledge. We help individuals organize emergent thoughts.
-
----
-
-### Auto-Documentation Tools
-- **Donut:** Slack thread → knowledge base article
-- **Slite:** Async team updates with AI summaries
-
-**Our differentiation:** We're personal, they're team-focused. They optimize for broadcast (standup, updates). We optimize for individual capture.
-
----
-
-### Personal Knowledge Tools
-- **Mem:** AI-powered note-taking with automatic tagging
-- **Reflect:** Daily notes with backlinks and AI search
-- **Notion AI:** Personal workspace with AI writing assistant
-
-**Our differentiation:** Local-first (Obsidian + Ollama) = privacy. PARA structure = GTD/BASB alignment. Slack integration = universal capture from any device.
-
----
-
-## Key Takeaways
-
-1. **Table stakes are higher than you think.** Users expect reliability, feedback, and correction mechanisms. These aren't nice-to-haves.
-
-2. **PARA classification is the moat.** Most tools use tags or folders. Routing to Projects/Areas/Resources/Archives requires understanding temporal context and lifecycle. Hard to replicate.
-
-3. **Transparency > Accuracy.** Users tolerate 80% accuracy if they can see reasoning, correct mistakes easily, and trust nothing is silently dropped.
-
-4. **Dynamic vault scanning is critical.** Static categories break as vaults grow. Learning vocabulary from existing structure = classification improves over time.
-
-5. **Local LLM is a differentiator.** Privacy-conscious users won't trust cloud APIs with personal thoughts. Ollama support = trust.
-
-6. **Avoid feature creep.** Real-time sync, multi-user support, custom training, iOS app, cloud state = complexity explosion with marginal value.
-
-7. **Daily digest is 90% of the value.** Capture is 10%. Surfacing patterns and surfacing stuck projects = actual productivity gain.
-
----
-
-## Open Questions for Implementation
-
-1. **Multi-stage vs single-stage classification?**
-   - Single-stage: One prompt, returns domain + PARA + subject (simpler, faster)
-   - Multi-stage: Three prompts, each narrows context (more accurate, slower, more costly)
-
-2. **How many subjects is too many?**
-   - Scanning vault might discover 50+ subjects. Do we:
-     - Include all in prompt? (Token cost, accuracy drop)
-     - Cluster into meta-subjects? (Health, Finance, Learning)
-     - Use two-stage subject classification?
-
-3. **Domain inference or explicit tagging?**
-   - Infer domain from content (harder, more magic)
-   - Require domain prefix ("Personal: idea about...") (easier, more manual)
-
-4. **How to handle multi-domain notes?**
-   - Example: "Idea for CCBH project that uses Just Value framework"
-   - Primary domain (CCBH) with tags for others?
-   - Duplicate note in multiple domains?
-   - Pick one, user moves if wrong?
-
-5. **Review queue UI?**
-   - Slack interactive messages? (limited UI)
-   - Obsidian dashboard? (requires opening vault)
-   - Daily digest with one-click approve? (DM + buttons)
-
----
-
-**End of Features Research**
-**Next Steps:** Feed into requirements definition for milestone 2 (PARA + domain routing)
+## Sources
+
+- [Obsidian AI Second Brain Complete Guide 2026 — NxCode](https://www.nxcode.io/resources/news/obsidian-ai-second-brain-complete-guide-2026) — HIGH confidence (verified features match known Obsidian/Claude Code capabilities)
+- [Obsidian × Claude Code Workflow Guide — Axton Liu](https://www.axtonliu.ai/newsletters/ai-2/posts/obsidian-claude-code-workflows) — HIGH confidence (concrete workflow patterns, hook implementations)
+- [How to Build Your AI Second Brain Using Obsidian + Claude Code — Noah Vnct](https://noahvnct.substack.com/p/how-to-build-your-ai-second-brain) — HIGH confidence (skill system, reading vs. writing patterns)
+- [Obsibrain Meetings and CRM Docs](https://www.obsibrain.com/docs/features/meetings-and-crm) — HIGH confidence (concrete CRM field schema for Obsidian)
+- [Building Your AI Second Brain — Ron Forbes](https://www.ronforbes.com/blog/building-your-ai-second-brain) — MEDIUM confidence (anti-patterns and table stakes categorization; single blog source)
+- [Morning Briefing — Dume.ai Docs](https://docs.dume.ai/system-workflows/morning-briefing) — HIGH confidence (official product docs; concrete data source and output structure)
+- [Obsidian Dataview Plugin — GitHub](https://github.com/blacksmithgu/obsidian-dataview) — HIGH confidence (official repo; Dataview capabilities)
+- [Obsidian Bases Plugin — kevsrobots.com](https://www.kevsrobots.com/learn/obsidian/08_dataview_and_bases.html) — MEDIUM confidence (secondary source for Bases v1.9.0 release)
+- [Second Brain Features — thesecondbrain.io](https://www.thesecondbrain.io/company/features) — MEDIUM confidence (competitor product; useful for what the market expects)
+- [AI PKM Proactive Insights — Sensay Medium](https://asksensay.medium.com/implementing-a-wisdom-engine-for-personal-knowledge-management-3c76b8d8f760) — LOW confidence (single Medium post; useful for proactive surfacing pattern description)
+- [Tana vs Obsidian comparison — TaskFoundry](https://www.taskfoundry.com/2025/07/which-knowledge-hub-wins-notion-obsidian-tana.html) — MEDIUM confidence (structured data comparison; multiple tools analyzed)

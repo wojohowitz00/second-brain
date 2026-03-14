@@ -1,733 +1,334 @@
-# Common Pitfalls: macOS Packaging + Ollama Integration
+# Domain Pitfalls: Hybrid Open Brain / Second Brain with Claude Code + Obsidian
 
-**Research Date:** 2026-01-30
-**Project:** Second Brain - macOS .pkg installer with Ollama classification
-
-## Overview
-
-This document identifies domain-specific pitfalls when packaging Python apps for macOS distribution and integrating Ollama for local LLM classification. Each pitfall includes warning signs for early detection, prevention strategies, and recommended phases for addressing them.
+**Domain:** AI-powered personal knowledge management OS (Obsidian + Claude Code)
+**Researched:** 2026-03-14
+**Overall confidence:** HIGH (official Claude Code docs) / MEDIUM (Obsidian community, verified forum)
 
 ---
 
-## 1. macOS Python App Packaging Pitfalls
+## Critical Pitfalls
 
-### 1.1 Dependency Bundling Hell
+Mistakes that cause rewrites, data corruption, or permanent vault damage.
 
-**What goes wrong:**
-Projects assume PyInstaller/py2app will "just work" and bundle all dependencies correctly. In reality:
-- Native extensions (compiled .so files) get missed or corrupted
-- Dynamic imports fail because the bundler can't trace them statically
-- System libraries conflict with bundled versions (especially OpenSSL, libffi)
-- uv-managed dependencies may not be recognized by PyInstaller's hooks
+---
+
+### Pitfall 1: AI Writing Into Human PARA Folders (Vault Pollution)
+
+**What goes wrong:** Claude Code writes generated summaries, AI-drafted notes, or "insight" content directly into 01_Projects, 02_Areas, 03_Research, or 04_Archive. Over time, the vault fills with AI-generated content that's indistinguishable from human-written notes. Quality degrades silently — human-authored notes get buried, trust in vault content erodes, and retrieval becomes unreliable.
+
+**Why it happens:** Skills that write to "the most relevant folder" follow the same PARA logic a human would use. Without a hard boundary, AI naturally puts AI content where human content lives.
+
+**Consequences:** Loss of vault integrity. Irreversible if AI-generated notes accumulate without tagging — you can't recover which notes were human-authored. The "second brain" stops reflecting actual thinking and becomes an AI slop repository.
 
 **Warning signs:**
-- App works in development but crashes on launch after bundling
-- Import errors for modules that are definitely installed
-- Segfaults or dyld library loading errors
-- "ModuleNotFoundError" for pyyaml, requests, or other C-extension libraries
+- Notes in 01–04 folders with no `created:` date matching a real work session
+- Notes that are smoother / more generic than your usual writing style
+- Dataview queries counting more notes than you remember creating
 
-**Prevention strategies:**
-1. Test bundling early (don't wait until the end)
-2. Use PyInstaller's `--hidden-import` for dynamic imports (like pydantic validators)
-3. Create custom .spec file to explicitly include data files and dependencies
-4. Test on clean macOS without development tools installed
-5. Use `--onefile` cautiously - it's slower and more prone to extraction issues
+**Prevention:**
+- Hard rule enforced at the skill level: AI writes *only* to `05_AI_Workspace/`. Zero exceptions.
+- All AI-generated notes must include `ai_generated: true` in YAML frontmatter and an `ai_generated_by:` field
+- Session hooks that write to daily notes must append to a designated AI section (e.g., `## AI Updates`) rather than free-form insertion
+- Treat vault purity as a constraint documented in CLAUDE.md — not just a guideline
 
-**Phase to address:** Infrastructure Setup (Phase 1)
-- Create test bundle script early
-- Document bundling process in UV_USAGE.md
-- Test on non-development Mac if available
-
-**Project-specific concern:**
-- `uv` creates isolated environments that PyInstaller may not discover automatically
-- State files in `~/SecondBrain/_scripts/.state/` need explicit path handling (not relative to bundle)
-- Cron scripts won't work from bundled app - need LaunchAgent approach instead
+**Phase:** Address in Phase 1 (AI workspace setup) before any skill writes to the vault. Do not build write-capable skills without this boundary in place first.
 
 ---
 
-### 1.2 Code Signing and Notarization Misunderstandings
+### Pitfall 2: Context Window Bloat Killing Skill Performance
 
-**What goes wrong:**
-Developers think codesigning is "just run `codesign -s`" and notarization is optional. Reality:
-- macOS 10.15+ enforces notarization for downloaded apps (Gatekeeper)
-- Unsigned apps trigger scary warnings users won't bypass
-- Signing must happen at every nesting level (frameworks, dylibs, main executable)
-- Ad-hoc signing (`-`) won't work for distribution
-- Notarization requires Apple Developer account ($99/year)
-- Hardened runtime requirements break some Python behaviors (like fork())
+**What goes wrong:** Skills load too much context — entire vault indexes, full note contents, multi-file YAML dumps — and Claude's reasoning quality degrades as the context fills. The "lost in the middle" problem causes earlier instructions to be effectively ignored. Skills that work fine on small vaults silently degrade as the vault grows.
+
+**Why it happens:** It feels safer to give Claude more context. Loading `_llm-context/` files plus a full task list plus recent notes plus people notes plus project statuses seems comprehensive — but 50,000 tokens of mixed context is worse than 8,000 tokens of targeted context.
+
+**Consequences:** Skills become slower, produce generic output, miss specific instructions embedded in the middle of context, and occasionally hallucinate details from unrelated earlier context (context pollution). Anthropic's docs confirm: "LLM performance degrades as context fills. Claude may start forgetting earlier instructions or making more mistakes."
 
 **Warning signs:**
-- "App is damaged and can't be opened" on other Macs
-- Gatekeeper blocks execution even with right-click open
-- Users see "unidentified developer" warnings
-- App works on your Mac but fails on fresh installs
+- Skills that used to give specific, tailored output now produce generic advice
+- Claude asks about things already in CLAUDE.md or a skill file
+- A skill invocation consumes noticeably more tokens over time without a scope change
+- Claude "mixes files from different modules" or "applies outdated conventions from a previous exchange"
 
-**Prevention strategies:**
-1. Get Apple Developer account early if targeting non-technical users
-2. Use Developer ID Application certificate (not Mac App Distribution)
-3. Sign with entitlements file that includes hardened runtime exceptions
-4. Test notarization process with a minimal app first
-5. Budget 30+ minutes per build for upload/notarization/stapling cycle
-6. Automate with `xcrun notarytool` (new) not `altool` (deprecated)
+**Prevention:**
+- Follow the existing progressive context loading architecture (`_llm-context/`) strictly — skills load only their relevant context file
+- Never load entire vault content. Use filename patterns, Dataview query results (summaries not full notes), or file metadata only
+- Skills should specify their context scope explicitly in their SKILL.md preamble
+- Use subagents for investigation tasks that require reading many files — they report back summaries without polluting the main context
+- Run `/clear` between unrelated skill invocations in long sessions
+- Set a personal rule: if a skill's context loading exceeds ~10 files, it needs to be redesigned
 
-**Phase to address:** Packaging + Distribution (Phase 3)
-- Don't wait until launch to discover you need paid account
-- Test signed builds on different Mac early
-
-**Project-specific concern:**
-- Cron-based architecture won't work from signed/sandboxed app
-- Need LaunchAgent that can run scripts with full disk access
-- State files need to be in user-accessible location, not app bundle
-- May need com.apple.security.files.user-selected.read-write entitlement for vault access
+**Phase:** Design context boundaries in Phase 1 (skills architecture). Audit context usage when adding each new skill.
 
 ---
 
-### 1.3 File System Access Permissions (TCC)
+### Pitfall 3: iCloud Sync Race Conditions on External Writes
 
-**What goes wrong:**
-Apps assume they can read/write anywhere. macOS Transparency, Consent, and Control (TCC) blocks:
-- Reading from iCloud Documents folder (where Obsidian vault lives)
-- Writing to ~/Library locations
-- Accessing .env files in user home directory
-- LaunchAgent reading credentials from keychain
+**What goes wrong:** Claude Code writes a file to the Obsidian vault (located at `iCloud~md~obsidian/Documents/Home/`) while iCloud is simultaneously syncing. iCloud Drive's sync daemon does not use NSFileCoordinator for external writes, meaning a write from a Python script or Claude Code tool can collide with an in-progress sync. The result is silent data loss — one version overwrites the other with no conflict notification.
+
+**Why it happens:** iCloud Drive is designed for app-initiated writes with coordination APIs. External processes writing directly to the filesystem bypass the coordination layer. Obsidian itself is aware of this (it uses the Obsidian Sync alternative partly for this reason), but the vault location on iCloud is the most common setup.
+
+**Consequences:** Notes silently lose content. If a skill writes a daily briefing at the same time mobile Obsidian is syncing the same note from an iPhone edit, one version disappears. With no conflict resolution, the loss is invisible until noticed manually.
 
 **Warning signs:**
-- "Operation not permitted" errors when accessing vault
-- Works in development but fails after installation
-- App can't find .env file or state JSON files
-- Obsidian files aren't being created/updated
+- Notes that were edited on mobile and also touched by a skill have missing sections
+- iCloud shows persistent "uploading" spinner for vault files after a skill runs
+- Notes in `05_AI_Workspace/` are shorter than expected after a sync cycle
 
-**Prevention strategies:**
-1. Request Full Disk Access in System Preferences early
-2. Provide clear first-run instructions for granting permissions
-3. Use NSOpenPanel for user to explicitly select vault location (stores permission)
-4. Store credentials in Keychain, not .env files, for production
-5. Add TCC permission checks to first-run wizard
+**Prevention:**
+- All skill file writes must be append-only or write-to-new-file. Never overwrite an existing note in place.
+- For append operations, use atomic writes: write to a temp file, then move (rename) into position — this is a single filesystem operation that's safer with iCloud
+- Add a brief stabilization check before writing: verify the target file is not currently being modified (check mtime stability)
+- Avoid writing to the same note from multiple sources simultaneously (e.g., a session-start hook and a background monitoring process should not target the same daily note)
+- Keep the `05_AI_Workspace/` folder as the only AI write target — reduces surface area for conflicts with human-edited notes
 
-**Phase to address:** First-Run Setup (Phase 2)
-- Wizard should check vault access before proceeding
-- Provide visual guide for System Preferences → Security → Full Disk Access
-
-**Project-specific concern:**
-- Vault path: `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/Home` requires special permission
-- LaunchAgent needs Full Disk Access to function
-- State files in `~/SecondBrain/_scripts/.state/` are fine, but iCloud vault access is critical
+**Phase:** Address in Phase 2 (file write infrastructure) before any automated/scheduled writes are introduced.
 
 ---
 
-### 1.4 LaunchAgent vs Cron Job Confusion
+### Pitfall 4: YAML Frontmatter Schema Lock-In
 
-**What goes wrong:**
-Developers port cron jobs directly to LaunchAgents without understanding differences:
-- LaunchAgents don't source .env files automatically
-- PATH is minimal (doesn't include /usr/local/bin where uv lives)
-- Working directory defaults to / not project root
-- Stdout/stderr need explicit redirect paths
-- No email on failure like cron's MAILTO
+**What goes wrong:** Early in development, you define a YAML frontmatter schema for people, projects, tasks, or habits. You build Dataview queries on top of it. Six weeks later, you realize `status` should be `project_status` to avoid collision with task status, or `contact_type` needs a new enum value. Renaming a property breaks every Dataview query that references it — silently returning empty results rather than errors.
+
+**Why it happens:** YAML frontmatter has no schema enforcement. Obsidian Properties and Dataview both accept whatever you put in. Iteration feels free until you have 50 notes and 15 queries depending on a property name.
+
+**Consequences:** Dataview queries return empty tables with no error. Dashboards show zero results. Debugging requires reading query code and note frontmatter manually — there's no type error, just missing data. Migration requires touching every note with the old property name.
 
 **Warning signs:**
-- LaunchAgent plist loads but script never runs
-- Script runs but fails with "command not found" for uv/python
-- Environment variables are undefined
-- Can't find log output anywhere
+- Dataview queries that used to show results now show empty tables
+- Adding a new note in a category doesn't appear in the expected dashboard
+- Property names in existing notes don't match the current skill's expected schema
 
-**Prevention strategies:**
-1. Hardcode full paths to executables (`/Users/user/.local/bin/uv`)
-2. Explicitly set WorkingDirectory in plist
-3. Use StandardOutPath and StandardErrorPath for logging
-4. Load environment variables in script itself, not relying on shell
-5. Test with `launchctl start` before installing permanently
+**Prevention:**
+- Define a canonical YAML schema document before writing any Dataview queries (a schema file in `_llm-context/` that all skills reference)
+- Use Obsidian's native Properties panel — it enforces consistent property types visually and catches typos at entry time
+- Adopt conservative naming: prefer explicit namespaced properties (`person_type`, `project_phase`) over ambiguous generic ones (`type`, `status`)
+- When schema must change: update the schema doc, then use a migration script to update all affected notes before updating any queries. Never update queries first.
+- Keep query count low — fewer queries means fewer things to break when schema evolves
 
-**Phase to address:** Infrastructure Setup (Phase 1)
-- Convert cron jobs to LaunchAgent plists early
-- Test startup behavior immediately
-
-**Project-specific concern:**
-- Current cron approach: `cd ~/second-brain-setup/backend && source _scripts/.env && uv run`
-- LaunchAgent needs: ProgramArguments with full paths, WorkingDirectory set, env vars loaded differently
-- Three separate plists: process_inbox (2min), fix_handler (5min), health_check (1hr)
+**Phase:** Define schema in Phase 1 (data layer design) before building any Dataview queries or skills that write frontmatter.
 
 ---
 
-### 1.5 Installer (.pkg) False Assumptions
+## Moderate Pitfalls
 
-**What goes wrong:**
-Developers think .pkg is "just a zip with install script". Common mistakes:
-- Putting everything in /Applications when scripts need ~/Library
-- Not setting correct ownership/permissions on installed files
-- Missing postinstall script for LaunchAgent registration
-- Hardcoding user paths instead of using $USER variable
-- Not validating Ollama/dependencies before completing install
+Mistakes that cause delays, degraded experience, or accumulating technical debt.
+
+---
+
+### Pitfall 5: Claude Code Hook Reliability Over-Reliance
+
+**What goes wrong:** Session-start and session-end hooks are designed to auto-surface stale tasks and update dashboards. When hooks fail silently — due to timeout, JSON parsing issues from shell profile output, or a non-zero exit code — Claude continues working without the hook running. There's no user notification for non-critical hook failures. The proactive system stops working with no indication.
+
+**Why it happens:** Hooks with non-zero exit codes (other than exit code 2) produce non-blocking errors visible only in verbose mode (`Ctrl+O`). HTTP hooks that receive a non-2xx response also fail silently and non-blockingly. Shell profiles that print text on startup corrupt JSON parsing.
+
+**Consequences:** Morning briefings stop running. End-of-day dashboard updates don't happen. The proactive layer becomes unreliable without the user knowing. Trust in the system degrades.
 
 **Warning signs:**
-- App installs but doesn't appear in Applications
-- LaunchAgent doesn't load after installation
-- Permission denied errors on state files
-- Installer succeeds but app doesn't run
+- Dashboards have stale data that should have been updated by session-end hook
+- Morning briefing output is missing from the daily note
+- Running a hook manually works, but automated triggering doesn't
 
-**Prevention strategies:**
-1. Use pkgbuild + productbuild toolchain (not just zip)
-2. Split payload: app bundle in /Applications, support files in ~/Library/Application Support
-3. Write postinstall script for LaunchAgent registration
-4. Test installation on clean user account
-5. Include uninstall script from day one
+**Prevention:**
+- All session hooks must write a completion timestamp to a log file as their last action — this provides a lightweight audit trail independent of Claude's output
+- Keep hook commands simple and dependency-light (pure bash or Python with no external API calls)
+- Test hooks in verbose mode (`Ctrl+O`) during development to see error output
+- Ensure shell profiles do not print text on startup (use `[[ -z "$PS1" ]] && return` guards in `.zshrc` / `.bashrc`)
+- Never use `async: true` for hooks that must complete before Claude responds (async hooks cannot block behavior and failures are invisible)
+- Design the system to be graceful when hooks skip: dashboards should show last-updated timestamps so you can see when they last ran
 
-**Phase to address:** Packaging + Distribution (Phase 3)
-- Design install layout before building
-- Test install/uninstall cycle thoroughly
-
-**Project-specific concern:**
-- State files must go to `~/Library/Application Support/SecondBrain/` not in app bundle
-- LaunchAgent plists go to `~/Library/LaunchAgents/`
-- .env file handling: need to prompt user for Slack tokens during first run
-- Installer should check for Ollama before completing
+**Phase:** Address in Phase 3 (hooks implementation). Test hook reliability explicitly before treating hooks as the proactive trigger mechanism.
 
 ---
 
-## 2. Ollama Integration Pitfalls
+### Pitfall 6: Dataview Query Performance and Rendering Issues
 
-### 2.1 Assuming Ollama API Compatibility with OpenAI
+**What goes wrong:** Dataview queries without explicit `FROM` scope constraints scan the entire vault. With a vault of several hundred notes, complex queries (especially those combining multiple WHERE clauses, sorting, and grouping) cause Obsidian to freeze briefly on note open and to show "jumping" content as queries render asynchronously. On mobile (iOS), Dataview query results sometimes show "no results" when they work on macOS — a known cross-platform inconsistency.
 
-**What goes wrong:**
-Developers think Ollama's OpenAI-compatible API is truly drop-in. Differences:
-- Different error response formats
-- Timeout behaviors vary (Ollama can be slower for first inference)
-- Streaming responses have different chunk formats
-- Model names don't match OpenAI conventions (llama3.2:3b not gpt-4)
-- No moderation endpoint
-- Function calling support differs
+**Why it happens:** Dataview's query engine was not designed for speed. It has received no significant updates in a significant period. The async rendering model causes visual instability. The iOS/macOS inconsistency is a documented issue in Dataview's GitHub.
+
+**Consequences:** Dashboard notes feel slow and unstable. Mobile experience degrades. Complex nested queries become unmaintainable — the DQL (Dataview Query Language) syntax lacks type errors or helpful debugging.
 
 **Warning signs:**
-- JSON parsing errors on responses
-- Timeouts on first call after model load
-- Unexpected null fields in response
-- Client library errors about missing fields
+- Notes with multiple Dataview blocks take more than 1-2 seconds to fully render
+- Content "jumps" visually as queries load sequentially
+- A query that returns results on macOS returns nothing on iOS
 
-**Prevention strategies:**
-1. Don't use OpenAI client library directly - wrap Ollama's API manually
-2. Add explicit timeout handling (60s+ for first inference)
-3. Test cold start behavior (first call after restart)
-4. Use `requests` library directly, not OpenAI SDK
-5. Parse responses defensively with try/except
+**Prevention:**
+- Always specify `FROM` with a folder path or tag in every Dataview query — never scan the whole vault
+- Limit dashboard notes to 3-5 Dataview blocks maximum per note
+- Use simple queries for frequently-opened dashboards; reserve complex queries for infrequently-visited analysis notes
+- Test all queries on iOS if mobile usage is expected
+- Monitor Obsidian Bases (the native core plugin successor to Dataview) — it may become the preferred query layer. Design YAML schemas that are compatible with both Dataview and Bases to enable future migration.
+- Do not use Dataview inline queries (backtick syntax) in notes that will be frequently edited — they conflict with editor rendering
 
-**Phase to address:** LLM Classification (Phase 2)
-- Build Ollama client abstraction from scratch
-- Test with model loaded vs unloaded state
-
-**Project-specific concern:**
-- Current code uses Claude API - don't assume Ollama swap is simple
-- Classification validation in schema.py must adapt to Ollama's response structure
-- Consider keeping Claude as fallback for edge cases
+**Phase:** Address in Phase 2 (dashboard design). Apply FROM-scoping as a code review rule on every Dataview query before merge.
 
 ---
 
-### 2.2 Model Size vs Available RAM Miscalculations
+### Pitfall 7: AI Memory Coherence and Staleness
 
-**What goes wrong:**
-8GB parameter models don't fit in 8GB RAM because:
-- Quantization reduces size but still needs headroom
-- System + other apps consume 2-3GB baseline
-- Inference requires additional scratch memory
-- Multiple concurrent requests compound memory usage
-- Swap thrashing makes inference unbearably slow
+**What goes wrong:** Claude Code memory files accumulate entries about your preferences, projects, and context over multiple sessions. Older entries become stale (a project listed as "in progress" finishes, a preference changes) but remain in memory. Conflicting entries appear (two memories with different values for the same preference). Claude reconciles these by averaging them or picking one arbitrarily, producing subtly wrong behavior.
+
+**Why it happens:** Memory systems are easy to write to and hard to prune. The path of least resistance is to add new entries; removing or updating old ones requires deliberate review. LLMs "struggle to reconcile conflicts between internal knowledge and externally retrieved information" (per 2025 memory systems research).
+
+**Consequences:** Claude surfaces outdated task priorities, references projects that are complete, or applies preferences you've changed. The personal OS feels "off" — not wrong enough to debug, but not reliably accurate. Trust in proactive suggestions erodes.
 
 **Warning signs:**
-- Model loads but inference takes 30+ seconds
-- System becomes unresponsive during classification
-- Ollama crashes with OOM errors
-- Swap usage spikes to 4GB+
+- Claude references a project or person you haven't thought about in weeks
+- A proactive suggestion contradicts your current actual priority
+- Memory files have entries with dates more than 4-6 weeks old that haven't been reviewed
 
-**Prevention strategies:**
-1. Target 3B parameter models maximum for 8GB RAM
-2. Test on actual MacBook Air M1 (8GB) not development machine
-3. Measure memory usage: `ollama ps` shows loaded models
-4. Use quantized models (Q4 or Q5) not full precision
-5. Implement model unloading after idle period (Ollama does this automatically)
-6. Set keep_alive parameter in API calls
+**Prevention:**
+- Memory files must include `last_verified:` timestamps on each entry
+- Add a monthly memory audit as a recurring task — the weekly review skill should surface memory entries older than 30 days for review
+- Use structured sections in memory files (active, archived) rather than an ever-growing flat list
+- Prefer specificity over breadth: memory should capture durable preferences and patterns, not transient project state (transient state belongs in vault notes, not memory)
+- Design skills to explicitly check memory staleness before acting on it: "This preference was last verified 6 weeks ago — is it still accurate?"
 
-**Phase to address:** Model Selection (Phase 2)
-- Test candidates: Llama 3.2 3B, Phi-3 Mini, Gemma 2B
-- Benchmark memory usage and inference speed on target hardware
-
-**Project-specific concern:**
-- MacBook Air M1 8GB is target platform - must test there
-- Classification happens every 2 minutes - can't tolerate 30s inference
-- Consider keeping model loaded with keep_alive for faster response
-- Acceptable latency: <5s per classification
+**Phase:** Address in Phase 2 (memory system design). Audit memory coherence at every weekly review.
 
 ---
 
-### 2.3 Ollama Not Running Detection
+### Pitfall 8: Obsidian Plugin Conflicts and Compatibility Breakage
 
-**What goes wrong:**
-App assumes Ollama is always running and ready. Reality:
-- Ollama starts on demand (first API call) which delays first inference
-- Ollama may not be installed at all
-- Ollama service may crash and need restart
-- Port 11434 may be blocked or used by other service
-- Model may not be downloaded yet
+**What goes wrong:** One plugin update breaks another plugin's functionality. Known interactions: Smart Connections cannot read Dataview-generated content (queries that pull tasks connected to specific people). Smart Connections 3.x introduced cross-platform inconsistencies where query results work on macOS but fail on iOS. Obsidian core updates can break community plugins that use internal APIs.
+
+**Why it happens:** Obsidian plugins use both public APIs and internal undocumented APIs. Plugin developers don't coordinate compatibility. The ecosystem has 800+ community plugins with no central testing.
+
+**Consequences:** A Dataview dashboard that Smart Connections was summarizing for AI context stops returning results. A Templater template that populates YAML frontmatter breaks silently after a plugin update. Workflows depending on inter-plugin functionality fail unpredictably.
 
 **Warning signs:**
-- Connection refused errors to localhost:11434
-- App hangs on first classification attempt
-- Error: "model not found" even after installation
-- Intermittent failures that resolve after restart
+- A skill that reads Obsidian content via Smart Connections returns empty or partial results
+- YAML frontmatter created by Templater has unexpected formatting after a plugin update
+- Mobile and desktop show different results for the same note or query
 
-**Prevention strategies:**
-1. Check Ollama availability before starting processing loop
-2. Implement health check: GET http://localhost:11434/api/tags
-3. Auto-start Ollama if installed but not running (via `launchctl` or `open -a Ollama`)
-4. Graceful degradation: queue messages if Ollama unavailable
-5. First-run wizard verifies Ollama + model installation
+**Prevention:**
+- Pin plugin versions for the 4-5 core plugins this system depends on (Dataview, Smart Connections, Templater, Tasks, Local REST API). Update deliberately, not automatically.
+- Do not design skills that depend on inter-plugin data pipelines (e.g., "Smart Connections reads a Dataview result"). Treat plugins as independent tools.
+- Add `.smart-env/` to iCloud sync ignore patterns to prevent Smart Connections index conflicts
+- Test mobile compatibility for any Dataview query used in a frequently-accessed note
+- Design fallback behavior for skill steps that depend on plugin outputs — if the Local REST API is unavailable, the skill should degrade gracefully rather than crash
 
-**Phase to address:** First-Run Setup (Phase 2) + Error Handling (ongoing)
-- Wizard checks Ollama installation
-- Health check verifies model availability
-- Process_inbox.py should fail gracefully if Ollama down
-
-**Project-specific concern:**
-- Current health_check.py monitors script success - extend to check Ollama health
-- Messages should queue in Slack if Ollama down (don't lose data)
-- Alert user via DM if Ollama unavailable for >1 hour
+**Phase:** Address in Phase 1 (plugin configuration audit). Document pinned plugin versions in the project.
 
 ---
 
-### 2.4 Prompt Engineering for Small Models
+### Pitfall 9: CLAUDE.md Over-specification and Rule Dilution
 
-**What goes wrong:**
-Developers copy prompts from Claude/GPT-4 and expect same results from 3B model:
-- Small models need simpler instructions
-- Few-shot examples are critical (zero-shot fails)
-- JSON output requires explicit formatting
-- Complex multi-step reasoning fails
-- Context window limitations (2-4K tokens vs 100K)
+**What goes wrong:** CLAUDE.md grows with every session as new rules, preferences, and context are added. When CLAUDE.md exceeds a certain length, Claude begins ignoring rules buried in the middle — the "lost in the middle" problem applied to configuration. Instructions that were followed reliably when the file was short stop being followed consistently when the file is long.
+
+**Why it happens:** Every time Claude does something wrong, the instinct is to add a rule to CLAUDE.md. This is additive-only by default. Rules that Claude already follows correctly by default also get written down "for safety." The file bloats.
+
+**Consequences:** Critical rules (like "never write to PARA folders 01-04") stop being reliably applied. The system becomes non-deterministic — Claude follows rules some sessions but not others. Debugging becomes difficult because it's unclear whether a rule exists or is being ignored.
 
 **Warning signs:**
-- Model returns partial JSON or malformed responses
-- Classification accuracy <70%
-- Model ignores schema requirements
-- Verbose outputs that don't match expected format
+- CLAUDE.md exceeds 200 lines
+- Claude violates a rule that's explicitly written in CLAUDE.md
+- Multiple entries that say similar things with slightly different wording
 
-**Prevention strategies:**
-1. Use structured output format with examples in prompt
-2. Keep prompts under 500 tokens
-3. One task per call (don't combine domain + PARA + subject in one prompt)
-4. Validate and retry with corrected prompt on failures
-5. Test with actual vault structure examples in few-shot
+**Prevention:**
+- Keep CLAUDE.md under 100 lines. Ruthlessly prune.
+- Convert behavioral rules to hooks (hooks don't negotiate; CLAUDE.md does)
+- Move domain knowledge to skills — CLAUDE.md is for session-level configuration, not encyclopedic context
+- Periodically audit: for each line in CLAUDE.md, ask "would removing this cause Claude to make a mistake?" If no, delete it
+- Add emphasis markers (`IMPORTANT:`, `CRITICAL:`) sparingly — if everything is critical, nothing is
 
-**Phase to address:** LLM Classification (Phase 2)
-- Redesign classification prompts for small models
-- Add extensive few-shot examples
-- Consider breaking into separate calls: domain → PARA → subject
-
-**Project-specific concern:**
-- Current classifier returns complex nested structure - may need simplification
-- Test with actual Slack messages from project history
-- Vault structure knowledge must be injected as context (no training)
-- Measure classification accuracy against Claude baseline
+**Phase:** Ongoing. Audit CLAUDE.md before adding any new rule.
 
 ---
 
-### 2.5 Model Updates Breaking Compatibility
+## Minor Pitfalls
 
-**What goes wrong:**
-Ollama models update automatically and change behavior:
-- Output format changes
-- Response time increases
-- Model size increases (breaks RAM constraint)
-- Breaking API changes in Ollama itself
+Issues that cause annoyance but are fixable without architectural changes.
+
+---
+
+### Pitfall 10: Alert Fatigue from Over-engineered Proactive Layer
+
+**What goes wrong:** The proactive layer (morning briefings, end-of-day updates, Slack alerts, macOS notifications) surfaces too many items. The user starts ignoring notifications. Briefings that are too long get skimmed or skipped. The system produces more output than it saves in attention.
+
+**Why it happens:** Building each alert in isolation, each one seems valuable. Collectively, they add up to more than a person can meaningfully act on. Alert fatigue is documented across incident management, productivity tools, and AI assistant research — "73% had outages linked to ignored or suppressed alerts."
+
+**Consequences:** The user builds a habit of dismissing AI output. Genuinely important alerts get lost in the noise. The proactive system trains the user to ignore it.
 
 **Warning signs:**
-- Classification starts failing after Ollama update
-- Inference becomes slower over time
-- Memory usage increases unexpectedly
-- JSON parsing errors appear suddenly
+- Morning briefing is routinely not read past the first section
+- Slack notifications from the system are regularly dismissed unread
+- The user mentions feeling overwhelmed by the system's output
 
-**Prevention strategies:**
-1. Pin specific model version in code (llama3.2:3b-q4 not llama3.2)
-2. Test new Ollama versions before auto-updating
-3. Document model version in first-run setup
-4. Provide model rollback instructions
-5. Monitor Ollama release notes
+**Prevention:**
+- Establish a hard limit: no more than 5 items per briefing, 3 priority items surfaced per session
+- Use signal strength tiers: only surface items the system has high confidence are actionable
+- "Actionable or silent" rule: if the system can't suggest a specific action for an alert, don't surface it
+- Design the morning briefing to be completable in under 3 minutes. If it takes longer, it will be skipped.
+- Let the proactive layer evolve gradually — start with the briefing only, add features based on demonstrated value
 
-**Phase to address:** Model Selection (Phase 2) + Documentation
-- Pin model version explicitly
-- Document in README which model versions tested
-- Add model version check to health_check.py
-
-**Project-specific concern:**
-- First-run wizard should install specific pinned model version
-- Don't rely on "latest" tag
-- Test with specific: llama3.2:3b-instruct-q4_0 (example)
+**Phase:** Phase 3 (proactive layer). Constrain scope aggressively. Add one alert type at a time, measure usage, then decide whether to add the next.
 
 ---
 
-## 3. LLM Classification System Pitfalls
+### Pitfall 11: Skill Scope Creep and Context Entanglement
 
-### 3.1 Vault Structure Drift
+**What goes wrong:** Skills start focused (morning briefing = today's tasks + calendar + one insight) and expand over time (morning briefing += last week's incomplete items + CRM follow-ups + habit trends + project milestones + research queue). Each addition feels incremental. The skill becomes slow, its output becomes unfocused, and its context requirements balloon.
 
-**What goes wrong:**
-Classification assumes static vault structure, but users add new folders:
-- New PARA subjects created manually in Obsidian
-- Model doesn't know about new categories
-- Classifier defaults to generic "resources" folder
-- Wikilinks to new entities fail to resolve
+**Why it happens:** It's easier to add to an existing skill than to create a new one. The morning briefing becomes the catch-all skill.
 
-**Warning signs:**
-- Increasing "needs-review" classifications
-- Files consistently misrouted to catch-all folders
-- New subjects not appearing in classifications
-- User reports frequent "fix:" corrections needed
+**Consequences:** Briefings become long and unfocused. The skill's context requirements grow, hitting Pitfall 2 (context bloat). Maintenance becomes difficult — changing one output section risks breaking another.
 
-**Prevention strategies:**
-1. Implement dynamic vault scanner (already planned)
-2. Refresh vault map before each classification
-3. Include vault structure in prompt context
-4. Fall back gracefully to parent PARA folder if subject unknown
-5. Log when new subjects are detected
+**Prevention:**
+- Maintain the single-responsibility principle for skills: one skill, one purpose
+- Skills should have a stated context budget (e.g., "morning briefing loads at most 5 context files")
+- When a skill's output exceeds one page, split it into two skills
+- Use skill chaining deliberately rather than building one massive skill
 
-**Phase to address:** Vault Scanner (Phase 2)
-- Periodic refresh (daily) not just one-time scan
-- Include vault map in classification prompt
-- Handle new folders appearing mid-run
-
-**Project-specific concern:**
-- Three domains × four PARA types × N subjects = growing context
-- Must fit in small model's context window
-- Scanner must handle iCloud sync conflicts (duplicate folders)
-- Test with actual vault: `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/Home`
+**Phase:** Ongoing. Review skill scope at each new feature addition.
 
 ---
 
-### 3.2 Entity Extraction Overload
+### Pitfall 12: External Write to Vault During Obsidian Indexing
 
-**What goes wrong:**
-Aggressive entity extraction creates noise:
-- Every capitalized word becomes a wikilink
-- Stub files proliferate for non-entities (job titles, product names)
-- Graph view becomes cluttered and useless
-- Performance degrades with thousands of stubs
+**What goes wrong:** A skill writes a new note to `05_AI_Workspace/` while Obsidian is re-indexing the vault (which happens on startup, after sync, and periodically). Obsidian may not pick up the new file immediately, or may pick it up mid-write, resulting in a partially-indexed note. Dataview queries that should include the new note miss it until the next indexing cycle.
 
-**Warning signs:**
-- Hundreds of single-line stub files
-- Wikilinks to "Monday", "Q2", "Phase 1"
-- Graph view is spaghetti
-- Users complain about clutter
+**Why it happens:** Obsidian's file watcher relies on filesystem events. Rapid writes (e.g., a skill writing multiple files in sequence) can overwhelm the watcher or miss events.
 
-**Prevention strategies:**
-1. Use allowlist for entity types (only people and projects)
-2. Require 2+ mentions before creating stub
-3. Check if entity already exists before creating
-4. Implement entity disambiguation (Sarah vs Sarah Chen)
-5. Let user configure entity extraction aggressiveness
+**Consequences:** New AI-generated insights or briefings don't appear in Dataview dashboards until Obsidian is restarted or the vault is manually re-indexed.
 
-**Phase to address:** Entity Extraction (ongoing)
-- Tune wikilinks.py extraction rules
-- Add entity confidence threshold
-- Test with real message corpus
+**Prevention:**
+- Write one file at a time; add a short pause (1-2 seconds) between sequential writes when a skill writes multiple files
+- Prefer appending to existing notes over creating new notes when possible — existing notes are already indexed
+- For skills that create new notes and then query them, design the query step to run after a short delay or on the next invocation, not immediately after the write
 
-**Project-specific concern:**
-- Current wikilinks.py may be too aggressive
-- Three domains mean entity disambiguation is critical (work Sarah vs friend Sarah)
-- Consider domain-specific entity lists
+**Phase:** Phase 2 (file write implementation detail). Low severity, but worth knowing before seeing mysterious Dataview misses.
 
 ---
 
-### 3.3 Confidence Score Misinterpretation
+## Phase-Specific Warnings
 
-**What goes wrong:**
-Confidence scores from small models are uncalibrated:
-- Model outputs 0.95 confidence on wrong answers
-- Scores don't correlate with actual accuracy
-- Developers set thresholds based on wrong assumptions
-- Users lose trust when "high confidence" classifications are wrong
-
-**Warning signs:**
-- High confidence scores but frequent "fix:" corrections
-- No correlation between confidence and accuracy
-- Users ignore confidence scores
-- Threshold tuning doesn't improve results
-
-**Prevention strategies:**
-1. Calibrate confidence scores against validation set
-2. Use "needs review" category for uncertain classifications
-3. Track fix rate per confidence band
-4. Don't rely solely on model's reported confidence
-5. Add heuristic confidence adjustments (e.g., penalize if multiple domains plausible)
-
-**Phase to address:** Model Evaluation (Phase 2)
-- Collect ground truth data (100+ messages with correct classifications)
-- Measure calibration curve
-- Adjust confidence thresholds based on data
-
-**Project-specific concern:**
-- Current system uses Claude confidence - may not translate to Ollama
-- Fix rate is proxy for accuracy - track this metric
-- Target: <10% fix rate overall
+| Phase Topic | Likely Pitfall | Mitigation |
+|-------------|---------------|------------|
+| AI workspace folder setup (Phase 1) | Forgetting to establish hard write boundary before building any skills | Define and document the boundary in CLAUDE.md and skill templates before any vault write capability exists |
+| YAML schema design (Phase 1) | Designing schema iteratively without a canonical document, leading to drift | Write schema doc first, use Properties panel to enforce types |
+| Plugin configuration (Phase 1) | Not pinning plugin versions; a Dataview update breaks all queries | Pin Dataview, Smart Connections, Templater, Tasks, Local REST API before building on them |
+| Claude Code memory system (Phase 2) | Memory growing without pruning mechanism, leading to staleness | Design memory structure with timestamps and a pruning/audit cadence |
+| Dashboard + Dataview (Phase 2) | Queries without FROM scope, slow rendering, mobile failures | FROM clause on every query; mobile test before shipping |
+| File write infrastructure (Phase 2) | iCloud race conditions on overwrite | Append-only or atomic write patterns; never overwrite-in-place |
+| Session hooks (Phase 3) | Silent failures, no audit trail | Hook completion logging; test in verbose mode |
+| Proactive layer (Phase 3) | Alert fatigue from too many simultaneous alerts | One alert type at a time; enforce briefing length limit |
+| CLAUDE.md (ongoing) | Over-specification causing rule dilution | Keep under 100 lines; convert rules to hooks; prune regularly |
 
 ---
 
-### 3.4 Cold Start Latency
+## Sources
 
-**What goes wrong:**
-First classification after app launch takes 30+ seconds:
-- Model needs to load from disk
-- First inference is slower (warmup)
-- User experience degraded if messages queue
-- Cron job may timeout before completion
-
-**Warning signs:**
-- First run after restart times out
-- Messages process quickly after first, slow on first
-- LaunchAgent reports failures on startup
-- Users report "app not working" after Mac wake
-
-**Prevention strategies:**
-1. Keep model loaded with keep_alive parameter
-2. Pre-warm model during first-run wizard
-3. Add startup delay to LaunchAgent (wait 60s after login)
-4. Set generous timeout for first API call
-5. Queue messages and process batch after warmup
-
-**Phase to address:** Infrastructure Setup (Phase 1)
-- Test cold start behavior explicitly
-- Document expected latency in README
-- Set LaunchAgent StartInterval appropriately
-
-**Project-specific concern:**
-- MacBook Air M1 may have slower cold starts
-- Ollama default keep_alive is 5 minutes - extend to 1 hour for frequent processing
-- First run after Mac wake is critical use case
-
----
-
-### 3.5 Multi-Domain Classification Ambiguity
-
-**What goes wrong:**
-Thought could belong to multiple domains:
-- "Meeting with Sarah about Just Value project" - Personal or Just Value?
-- Model picks wrong domain because prompt doesn't prioritize
-- Users waste time fixing domain misclassifications
-- Wikilinks point to wrong domain's entity files
-
-**Warning signs:**
-- High fix rate specifically for domain corrections
-- Same entities duplicated across domains
-- Users report "it always picks wrong domain"
-- Personal domain becomes catch-all
-
-**Prevention strategies:**
-1. Add domain hints to prompt (keywords, entity names)
-2. Use explicit rules for domain precedence
-3. Let user tag messages with domain prefix in Slack
-4. Track entity→domain mapping to inform future classifications
-5. Consider asking user when ambiguous (via Slack button)
-
-**Phase to address:** Multi-Domain Routing (Phase 2)
-- Test with ambiguous messages explicitly
-- Define domain precedence rules
-- Add optional Slack tagging syntax
-
-**Project-specific concern:**
-- Three domains: Personal, CCBH, Just Value
-- Some entities span domains (same person in work and personal life)
-- Consider prefixing filenames with domain: `Personal/people/sarah.md` vs `CCBH/people/sarah.md`
-- Vault scanner must handle domain-specific subject lists
-
----
-
-## 4. First-Run Setup Wizard Pitfalls
-
-### 4.1 Assuming Dependencies Are Installed
-
-**What goes wrong:**
-Wizard assumes Ollama, Python, etc. are present:
-- No installation check before proceeding
-- Breaks halfway through when dependency missing
-- User left in broken state with unclear recovery
-
-**Warning signs:**
-- Wizard crashes with "command not found"
-- Setup completes but app doesn't work
-- No clear error messages
-- Users report "followed instructions but doesn't work"
-
-**Prevention strategies:**
-1. Check all dependencies before starting setup
-2. Provide download links if missing
-3. Offer to open installer if Ollama not present
-4. Validate at each step before proceeding
-5. Provide rollback if setup fails
-
-**Phase to address:** First-Run Setup (Phase 2)
-- Dependency checks are first step
-- Clear error messages with actionable instructions
-
-**Project-specific concern:**
-- Check: Ollama installed, model downloaded, vault path exists, Slack token valid
-- Don't check for Python/uv - bundled in app
-- Offer to download Ollama if missing (open ollama.ai)
-
----
-
-### 4.2 Non-Obvious Model Installation
-
-**What goes wrong:**
-Wizard says "install model" but doesn't explain how:
-- User doesn't know what command to run
-- Model name is unclear (which llama3.2 variant?)
-- Download progress not visible
-- Model download fails partway through (large files)
-
-**Warning signs:**
-- Support requests: "what model do I install?"
-- Users install wrong model version
-- Setup stalls waiting for model that never downloads
-- Model download times out on slow connections
-
-**Prevention strategies:**
-1. Provide exact command to copy/paste: `ollama pull llama3.2:3b-instruct-q4_0`
-2. Show download progress in wizard UI
-3. Verify model downloaded before proceeding
-4. Handle download failures gracefully
-5. Offer alternative models if first choice unavailable
-
-**Phase to address:** First-Run Setup (Phase 2)
-- Wizard runs ollama pull command directly
-- Shows progress bar
-- Validates model availability after download
-
-**Project-specific concern:**
-- Model size ~2GB - could take 5-10 minutes on slow connection
-- User may close laptop during download (handle resume)
-- Verify exact model variant works before hardcoding
-
----
-
-### 4.3 Slack Token Configuration UX
-
-**What goes wrong:**
-Wizard asks for "Slack Bot Token" with no context:
-- User doesn't know where to get it
-- Copies wrong token type (user token vs bot token)
-- Doesn't know how to create Slack app
-- Token validation fails with unclear error
-
-**Warning signs:**
-- Support requests: "where do I find the token?"
-- Token validation fails repeatedly
-- Users give up on setup
-- Error messages don't explain what's wrong
-
-**Prevention strategies:**
-1. Provide step-by-step Slack app creation guide in wizard
-2. Link to Slack API console with pre-filled scopes
-3. Validate token format before proceeding (starts with xoxb-)
-4. Test token by calling conversations.list API
-5. Show example token format (redacted)
-
-**Phase to address:** First-Run Setup (Phase 2)
-- Wizard includes visual guide or video
-- Token validation is explicit step
-- Clear error: "Token invalid - must start with xoxb-"
-
-**Project-specific concern:**
-- Requires: SLACK_BOT_TOKEN, SLACK_CHANNEL_ID, SLACK_USER_ID
-- Wizard could auto-detect channel/user ID after token validated
-- Test token permissions (channels:history, chat:write, im:write)
-
----
-
-### 4.4 Vault Path Validation
-
-**What goes wrong:**
-User enters vault path but:
-- Path contains spaces and breaks shell commands
-- Path doesn't exist yet (Obsidian not configured)
-- iCloud sync not enabled
-- Permissions denied to access path
-
-**Warning signs:**
-- Setup completes but no files appear in vault
-- Permission errors in logs
-- Path with spaces causes LaunchAgent failures
-- Vault on external drive that's sometimes unmounted
-
-**Prevention strategies:**
-1. Use file picker dialog, don't ask user to type path
-2. Validate path exists and is writable
-3. Check for required vault structure (folders)
-4. Offer to create structure if missing
-5. Warn if path is on external/network drive
-
-**Phase to address:** First-Run Setup (Phase 2)
-- Use NSOpenPanel for path selection
-- Test write access before proceeding
-- Create PARA folders if missing
-
-**Project-specific concern:**
-- Default path: `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/Home`
-- Must handle iCloud sync state (downloading from cloud)
-- Validate three domain folders exist: Personal/, CCBH/, Just Value/
-
----
-
-### 4.5 Incomplete Setup Persistence
-
-**What goes wrong:**
-Setup partially completes then crashes:
-- No state tracking of what's configured
-- Re-running setup duplicates LaunchAgents
-- Unclear which steps completed
-- User doesn't know if safe to restart
-
-**Warning signs:**
-- Multiple LaunchAgents with same name
-- Cron job runs twice
-- Config file has duplicate entries
-- Users afraid to re-run wizard
-
-**Prevention strategies:**
-1. Track setup progress in state file
-2. Make wizard idempotent (safe to re-run)
-3. Check what's already configured before proceeding
-4. Allow skipping completed steps
-5. Provide setup verification command
-
-**Phase to address:** First-Run Setup (Phase 2)
-- Setup state in `~/Library/Application Support/SecondBrain/setup_state.json`
-- Wizard detects partial completion and resumes
-- Verification: Health check confirms all components working
-
-**Project-specific concern:**
-- LaunchAgent plists must be unloaded before re-installing
-- Don't duplicate message processing if re-run
-- Verify setup with: ollama health, vault access, Slack connectivity
-
----
-
-## Phase Mapping Summary
-
-| Phase | Key Pitfalls to Address |
-|-------|------------------------|
-| **Phase 1: Infrastructure Setup** | LaunchAgent conversion, dependency bundling testing, cold start latency, model pinning |
-| **Phase 2: LLM + First-Run** | Model size constraints, Ollama detection, prompt engineering, all wizard UX issues, vault scanner |
-| **Phase 3: Packaging** | Code signing, notarization, TCC permissions, .pkg installer design |
-| **Ongoing:** | Entity extraction tuning, confidence calibration, domain ambiguity, vault drift handling |
-
----
-
-## Quality Checklist
-
-- [x] Pitfalls are specific to macOS packaging + Ollama integration (not generic)
-- [x] Warning signs provided for early detection
-- [x] Prevention strategies are actionable
-- [x] Phase mapping included for each category
-- [x] Project-specific concerns referenced with actual paths/constraints
-- [x] Memory constraints (8GB RAM) explicitly addressed
-- [x] Target user profile (moderate technical ability) considered
-
----
-
-*Research completed: 2026-01-30*
-*Sources: Domain knowledge of macOS packaging, Ollama integration patterns, LLM classification systems*
+- [Claude Code Best Practices — Official Docs](https://code.claude.com/docs/en/best-practices) — HIGH confidence
+- [Claude Code Hooks Reference — Official Docs](https://code.claude.com/docs/en/hooks) — HIGH confidence
+- [Dataview vs Datacore vs Obsidian Bases — Obsidian Rocks](https://obsidian.rocks/dataview-vs-datacore-vs-obsidian-bases/) — MEDIUM confidence
+- [Dataview Performance Issues — Obsidian Forum](https://forum.obsidian.md/t/dataview-very-slow-performance/52592) — MEDIUM confidence
+- [Design your vault for AI orientation — Obsidian Forum](https://forum.obsidian.md/t/design-your-vault-for-ai-orientation-not-just-human-navigation/112010) — MEDIUM confidence
+- [iCloud Drive iOS Sync Deep Dive — Carlo Zottmann](https://zottmann.org/2025/09/08/ios-icloud-drive-synchronization-deep.html) — MEDIUM confidence
+- [iCloud Sync Issues — Obsidian Forum](https://forum.obsidian.md/t/understanding-icloud-sync-issues/78186) — MEDIUM confidence
+- [Smart Connections unable to read Dataview content — Obsidian Forum](https://forum.obsidian.md/t/obsidian-smart-connections-unable-to-read-dataview-generated-content/99290) — MEDIUM confidence
+- [AI Fatigue Research — BCG / Fortune, March 2026](https://fortune.com/2026/03/10/ai-brain-fry-workplace-productivity-bcg-study/) — MEDIUM confidence
+- [State of Incident Management 2025 — Runframe](https://runframe.io/blog/state-of-incident-management-2025) — MEDIUM confidence
+- [Claude Code context window management — Understanding context window, Damian Galarza](https://www.damiangalarza.com/posts/2025-12-08-understanding-claude-code-context-window/) — MEDIUM confidence
+- [10 Claude Code Hooks from 108 hours autonomous operation — DEV Community](https://dev.to/yurukusa/10-claude-code-hooks-i-collected-from-108-hours-of-autonomous-operation-now-open-source-5633) — LOW confidence (single practitioner account, no official verification)
