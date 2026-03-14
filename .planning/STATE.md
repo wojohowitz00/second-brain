@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-14)
 ## Current Position
 
 Phase: 3 of 4 (Core Daily Skills)
-Plan: 2 of 4 in current phase
-Status: In progress — 03-02 complete
-Last activity: 2026-03-14 — Completed 03-02-PLAN.md: EOD Update (session-end.sh Day Summary + EOD skill)
+Plan: 4 of 4 in current phase
+Status: In progress — 03-04 complete
+Last activity: 2026-03-15 — Completed 03-04-PLAN.md: Dataview Dashboards (tasks-by-status + projects-health)
 
-Progress: [██████░░░░] 60% (6/10 total plans)
+Progress: [████████░░] 80% (8/10 total plans)
 
 ## Performance Metrics
 
@@ -61,6 +61,9 @@ Recent decisions affecting current work:
 - 03-02: Hook handles mechanical writes (timestamp only); EOD skill handles interactive reflection — clean separation of concerns
 - 03-02: Day Summary idempotent via grep check — multiple sessions same day produce at most one Day Summary header
 - 03-02: projects-health.md refresh added proactively to session-end.sh (Plan 03-04 creates the file)
+- 03-04: FROM "" + WHERE type filter is the correct Dataview pattern for vault-external files (tasks/projects in project root)
+- 03-04: SORT before GROUP BY ensures intra-group ordering in Dataview queries
+- 03-04: file.mtime stale detection avoids complex cross-file JOINs for project staleness
 
 ### Pending Todos
 
@@ -74,6 +77,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14T23:08:44Z
-Stopped at: Completed 03-02-PLAN.md (EOD Update)
+Last session: 2026-03-14T23:08:56Z
+Stopped at: Completed 03-04-PLAN.md (Dataview Dashboards)
 Resume file: None
