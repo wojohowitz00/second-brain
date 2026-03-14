@@ -138,3 +138,12 @@ If new patterns, preferences, or context emerged:
 Add specific gotchas as you discover them:
 
 - [Add others as discovered]
+
+## YAML Frontmatter Schema
+
+Canonical schema: `.planning/phases/01-foundation/yaml-frontmatter-schema.md`
+
+All AI-generated notes with structured data MUST use field names and types defined in the canonical schema. Key rules:
+- Date fields: bare ISO format (no quotes) — e.g., `due_date: 2026-03-14`
+- Status enums: use only values defined in schema
+- New fields: must be added to schema before use
