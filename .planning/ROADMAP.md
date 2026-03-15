@@ -100,12 +100,12 @@ Plans:
 3. A Canvas visual weekly review board exists in `05_AI_Workspace/canvas/` showing active projects, open tasks, and domains in a spatial layout — and it opens correctly in Obsidian's Canvas view
 4. Alert volume is bounded — no more than 5 alert items surface in a single morning briefing, preventing alert fatigue from the start
 
-**Plans:** TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 04-01: Build insights skill with vault-wide pattern detection
-- [ ] 04-02: Implement alert routing to Slack, macOS notifications, and Obsidian daily note
-- [ ] 04-03: Build Canvas visual weekly review template and generation skill
+- [ ] 04-01-PLAN.md — Vault-wide insights detection skill integrated into /weekly
+- [ ] 04-02-PLAN.md — Severity-based alert routing in morning briefing
+- [ ] 04-03-PLAN.md — Canvas visual weekly review with JSON Canvas v1.0
 
 ---
 
@@ -116,7 +116,7 @@ Plans:
 | 1. Foundation | 3/3 | Complete | 2026-03-14 |
 | 2. Memory and Session Context | 2/2 | Complete | 2026-03-14 |
 | 3. Core Daily Skills | 4/4 | Complete | 2026-03-15 |
-| 4. Proactive Layer | 0/3 | Not started | - |
+| 4. Proactive Layer | 0/3 | In progress | - |
 
 ---
 
