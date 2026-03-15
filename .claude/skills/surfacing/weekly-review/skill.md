@@ -14,6 +14,7 @@ Generate a comprehensive weekly summary of what happened, what's stuck, patterns
 - Folder structure with tasks/, projects/, ideas/, people/, admin/
 - `_inbox_log/` files for the past 7 days (pipe-delimited format)
 - Items with date-based frontmatter
+- Insights detection skill at `.claude/skills/surfacing/insights/skill.md`
 
 ## Workflow
 
@@ -49,6 +50,18 @@ From `_inbox_log/` files for the week:
 - Tasks pushed more than once (avoidance signals)
 - People follow-ups overdue
 - Common topics in ideas
+
+### 5a. Run Vault-Wide Insights Detection
+
+Invoke the insights detection skill (`.claude/skills/surfacing/insights/skill.md`).
+
+This step:
+1. Runs all four detection rules (dormant projects, neglected areas, overcommitment, goal drift)
+2. Writes the dated insights report to `05_AI_Workspace/insights/YYYY-MM-DD-insights.md`
+3. Incorporates top insights into the weekly review output under a new `## Vault Insights` section
+
+The weekly review's "Patterns Noticed" section should reference the insights report:
+"See [[YYYY-MM-DD-insights]] for full vault analysis."
 
 ### 6. Generate Review
 

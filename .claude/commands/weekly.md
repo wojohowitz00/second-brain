@@ -75,6 +75,16 @@ Items that didn't get done:
 *Review generated [timestamp]*
 ```
 
+## Insights Detection
+
+As part of the weekly review, Claude performs vault-wide pattern analysis:
+- Dormant projects (14+ days inactive while still marked active)
+- Neglected domains (no activity vs other active domains in past 14 days)
+- Overcommitment (10+ active tasks)
+- Goal drift (tasks referencing inactive or missing projects)
+
+Results are saved to `05_AI_Workspace/insights/YYYY-MM-DD-insights.md` and summarized in the weekly review under `## Vault Insights`. The full report is linked via `[[YYYY-MM-DD-insights]]` in the Patterns Noticed section.
+
 ## Prompt
 
 End with:
