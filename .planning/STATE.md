@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-03-14)
 
 ## Current Position
 
-Phase: 3 of 4 (Core Daily Skills) — COMPLETE
-Plan: 4 of 4 in current phase
-Status: Phase 3 verified — ready to start Phase 4
-Last activity: 2026-03-15 — Phase 3 complete: morning briefing, EOD update, enhanced /new-task, Dataview dashboards
+Phase: 4 of 4 (Proactive Layer) — In progress
+Plan: 1 of 3 in current phase
+Status: In progress
+Last activity: 2026-03-15 — Completed 04-01-PLAN.md: vault-wide insights detection skill
 
-Progress: [████████░░] 75% (9/12 total plans)
+Progress: [█████████░] 83% (10/12 total plans)
 
 ## Performance Metrics
 
@@ -30,10 +30,11 @@ Progress: [████████░░] 75% (9/12 total plans)
 | 01-foundation | 3/3 | ~6.5 min | ~2.2 min |
 | 02-memory-and-session-context | 2/2 | ~2.2 min | ~1.1 min |
 | 03-core-daily-skills | 4/4 | ~4.3 min | ~1.1 min |
+| 04-proactive-layer | 1/3 | ~1.3 min | ~1.3 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-02 (74s), 03-01 (76s), 03-02 (67s), 03-03 (51s), 03-04 (60s)
-- Trend: fast execution, consistently under 80 sec
+- Last 5 plans: 03-01 (76s), 03-02 (67s), 03-03 (51s), 03-04 (60s), 04-01 (80s)
+- Trend: fast execution, consistently under 90 sec
 
 *Updated after each plan completion*
 
@@ -73,6 +74,10 @@ Recent decisions affecting current work:
 - 03-01: Morning brief uses static markdown tables (not Dataview) — brief is a snapshot at invocation time, not a live view
 - 03-01: Idempotent daily output: overwrite same-day file; daily-briefs are one-file-per-day
 - 03-01: Automation opportunities = actionable offers Claude can execute right now, not passive observations
+- 04-01: Insights run only as part of /weekly — not standalone, not on session start
+- 04-01: Goal drift skips tasks with empty/missing project field silently — absence of linkage is not drift
+- 04-01: Insights hard cap 5-10 items, prioritized: overcommitment > goal drift > dormant projects > neglected areas
+- 04-01: Claude reads files directly (bash stat/grep) for insights — not Dataview queries
 
 ### Pending Todos
 
@@ -87,5 +92,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-15
-Stopped at: Phase 3 complete and verified — all 4 plans executed, VERIFICATION.md passed
+Stopped at: Completed 04-01-PLAN.md — vault insights detection skill, /weekly integration
 Resume file: None
