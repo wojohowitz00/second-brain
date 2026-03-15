@@ -75,6 +75,14 @@ Items that didn't get done:
 *Review generated [timestamp]*
 ```
 
+## Visual Canvas Review
+
+The weekly review also generates a visual board at `05_AI_Workspace/canvas/weekly-review.canvas`:
+- Swimlanes: Active (green), Waiting (yellow), Blocked (red)
+- Each project card shows health status and problem tasks only (blocked or overdue)
+- Opens in Obsidian's Canvas view for spatial overview of active work
+- Regenerated fresh each week (overwrites previous canvas)
+
 ## Insights Detection
 
 As part of the weekly review, Claude performs vault-wide pattern analysis:

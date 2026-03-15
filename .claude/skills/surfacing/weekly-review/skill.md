@@ -15,6 +15,7 @@ Generate a comprehensive weekly summary of what happened, what's stuck, patterns
 - `_inbox_log/` files for the past 7 days (pipe-delimited format)
 - Items with date-based frontmatter
 - Insights detection skill at `.claude/skills/surfacing/insights/skill.md`
+- Canvas review skill at `.claude/skills/surfacing/canvas-review/skill.md`
 
 ## Workflow
 
@@ -62,6 +63,17 @@ This step:
 
 The weekly review's "Patterns Noticed" section should reference the insights report:
 "See [[YYYY-MM-DD-insights]] for full vault analysis."
+
+### 5b. Generate Canvas Visual Review
+
+Invoke the canvas review skill (`.claude/skills/surfacing/canvas-review/skill.md`).
+
+This step:
+1. Collects active/waiting/blocked projects and their problem tasks (blocked or overdue)
+2. Generates a JSON Canvas v1.0 file at `05_AI_Workspace/canvas/weekly-review.canvas`
+3. Overwrites any existing canvas file (fresh snapshot each week)
+
+The weekly review output should note: "Visual board updated — open weekly-review.canvas in Obsidian for spatial overview."
 
 ### 6. Generate Review
 
