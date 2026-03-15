@@ -23,10 +23,10 @@ Requirements for the hybrid evolution. Each maps to roadmap phases.
 
 ### Proactive Layer
 
-- [ ] **PROACT-01**: Insights skill that performs weekly vault-wide analysis detecting drift from goals, neglected areas, overcommitment, dormant projects
-- [ ] **PROACT-02**: Alert routing system that delivers urgent items via Slack channel post + macOS notification + Obsidian daily note append
+- [x] **PROACT-01**: Insights skill that performs weekly vault-wide analysis detecting drift from goals, neglected areas, overcommitment, dormant projects
+- [x] **PROACT-02**: Alert routing system that delivers urgent items via Slack channel post + macOS notification + Obsidian daily note append
 - [x] **PROACT-03**: Dataview dashboard notes in 05_AI_Workspace/dashboards/ for productivity overview (tasks by status/priority) and project status (active projects with health indicators)
-- [ ] **PROACT-04**: Canvas visual weekly review board in 05_AI_Workspace/canvas/ showing projects, tasks, and domains in spatial layout
+- [x] **PROACT-04**: Canvas visual weekly review board in 05_AI_Workspace/canvas/ showing projects, tasks, and domains in spatial layout
 
 ## v3 Requirements
 
@@ -65,10 +65,10 @@ Deferred to future milestone. Tracked but not in current roadmap.
 | DAILY-02 | Phase 3 | Complete |
 | DAILY-03 | Phase 2 | Complete |
 | DAILY-04 | Phase 3 | Complete |
-| PROACT-01 | Phase 4 | Pending |
-| PROACT-02 | Phase 4 | Pending |
+| PROACT-01 | Phase 4 | Complete |
+| PROACT-02 | Phase 4 | Complete |
 | PROACT-03 | Phase 3 | Complete |
-| PROACT-04 | Phase 4 | Pending |
+| PROACT-04 | Phase 4 | Complete |
 
 **Coverage:**
 - v2 requirements: 12 total
