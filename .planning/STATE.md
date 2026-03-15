@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-14)
 ## Current Position
 
 Phase: 4 of 4 (Proactive Layer) — In progress
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-03-15 — Completed 04-01-PLAN.md: vault-wide insights detection skill
+Last activity: 2026-03-15 — Completed 04-02-PLAN.md: severity-based alert routing in morning briefing
 
-Progress: [█████████░] 83% (10/12 total plans)
+Progress: [█████████░] 92% (11/12 total plans)
 
 ## Performance Metrics
 
@@ -30,10 +30,10 @@ Progress: [█████████░] 83% (10/12 total plans)
 | 01-foundation | 3/3 | ~6.5 min | ~2.2 min |
 | 02-memory-and-session-context | 2/2 | ~2.2 min | ~1.1 min |
 | 03-core-daily-skills | 4/4 | ~4.3 min | ~1.1 min |
-| 04-proactive-layer | 1/3 | ~1.3 min | ~1.3 min |
+| 04-proactive-layer | 2/3 | ~2.6 min | ~1.3 min |
 
 **Recent Trend:**
-- Last 5 plans: 03-01 (76s), 03-02 (67s), 03-03 (51s), 03-04 (60s), 04-01 (80s)
+- Last 5 plans: 03-02 (67s), 03-03 (51s), 03-04 (60s), 04-01 (80s), 04-02 (81s)
 - Trend: fast execution, consistently under 90 sec
 
 *Updated after each plan completion*
@@ -78,6 +78,10 @@ Recent decisions affecting current work:
 - 04-01: Goal drift skips tasks with empty/missing project field silently — absence of linkage is not drift
 - 04-01: Insights hard cap 5-10 items, prioritized: overcommitment > goal drift > dormant projects > neglected areas
 - 04-01: Claude reads files directly (bash stat/grep) for insights — not Dataview queries
+- 04-02: Alert routing lives ONLY in skill Step 2.5 — session-start.sh remains context-injection only (no external delivery)
+- 04-02: 5-item cap applied before any delivery; overflow count appended to daily brief rather than silently dropped
+- 04-02: Stale follow-up detection uses file mtime (7-day threshold) via stat on macOS
+- 04-02: Single consolidated macOS notification (not per-item) to minimize notification fatigue
 
 ### Pending Todos
 
@@ -92,5 +96,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-15
-Stopped at: Completed 04-01-PLAN.md — vault insights detection skill, /weekly integration
+Stopped at: Completed 04-02-PLAN.md — severity-based alert routing in morning briefing skill
 Resume file: None
