@@ -29,3 +29,8 @@ build/
 backend/_scripts/configure.py
 legacy-productivity-second_brain/_scripts/configure.py
 legacy-productivity-second_brain/_scripts/from-para-2026-02-08/configure.py
+
+# Beads / Dolt runtime data
+.beads/dolt-server.*
+.beads/dolt/.dolt/
+.beads/dolt/.bd-dolt-ok
