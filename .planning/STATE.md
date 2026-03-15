@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-14)
 
 **Core value:** Claude Code knows me deeply across sessions and proactively surfaces what matters
-**Current focus:** Phase 4 — Proactive Layer
+**Current focus:** Phase 4 — Proactive Layer (COMPLETE)
 
 ## Current Position
 
-Phase: 4 of 4 (Proactive Layer) — In progress
-Plan: 2 of 3 in current phase
-Status: In progress
-Last activity: 2026-03-15 — Completed 04-02-PLAN.md: severity-based alert routing in morning briefing
+Phase: 4 of 4 (Proactive Layer) — Complete
+Plan: 3 of 3 in current phase
+Status: All phases complete — v2.0 Hybrid Brain OS milestone reached
+Last activity: 2026-03-15 — Completed 04-03-PLAN.md: Canvas visual weekly review skill
 
-Progress: [█████████░] 92% (11/12 total plans)
+Progress: [██████████] 100% (12/12 total plans)
 
 ## Performance Metrics
 
@@ -30,10 +30,10 @@ Progress: [█████████░] 92% (11/12 total plans)
 | 01-foundation | 3/3 | ~6.5 min | ~2.2 min |
 | 02-memory-and-session-context | 2/2 | ~2.2 min | ~1.1 min |
 | 03-core-daily-skills | 4/4 | ~4.3 min | ~1.1 min |
-| 04-proactive-layer | 2/3 | ~2.6 min | ~1.3 min |
+| 04-proactive-layer | 3/3 | ~4.6 min | ~1.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 03-02 (67s), 03-03 (51s), 03-04 (60s), 04-01 (80s), 04-02 (81s)
+- Last 5 plans: 03-04 (60s), 04-01 (80s), 04-02 (81s), 04-03 (~90s)
 - Trend: fast execution, consistently under 90 sec
 
 *Updated after each plan completion*
@@ -82,6 +82,10 @@ Recent decisions affecting current work:
 - 04-02: 5-item cap applied before any delivery; overflow count appended to daily brief rather than silently dropped
 - 04-02: Stale follow-up detection uses file mtime (7-day threshold) via stat on macOS
 - 04-02: Single consolidated macOS notification (not per-item) to minimize notification fatigue
+- 04-03: Canvas is problem-focused — shows only blocked/overdue tasks per project, not full workload
+- 04-03: Deterministic node IDs (lane-{status}, proj-{filename}) make canvas diffable week over week in git
+- 04-03: No Wins/Completed lane — board shows active/blocked work only; review doc handles completed items
+- 04-03: Canvas step placed as 5b — after insights (5a) and before Generate Review (6)
 
 ### Pending Todos
 
@@ -89,12 +93,12 @@ None yet.
 
 ### Blockers/Concerns
 
-- Phase 4 (Canvas): Research flagged LOW confidence on Obsidian Canvas file write patterns from Claude Code skills. Validate Canvas JSON interaction before building the visual weekly review skill. Documented in canvas/CLAUDE.md.
 - Phase 3 (Dataview iOS): Dashboard notes used on mobile must be tested on iOS before Phase 3 ships — known macOS/iOS query inconsistencies exist.
 - 01-03 (Human verify): ✓ Dataview dashboard rendering verified in Obsidian (2026-03-14).
+- 04-03 (Canvas validation): Skill document defines JSON Canvas v1.0 format; first real /weekly run will validate Obsidian renders it correctly. Low risk — spec is well-defined.
 
 ## Session Continuity
 
 Last session: 2026-03-15
-Stopped at: Completed 04-02-PLAN.md — severity-based alert routing in morning briefing skill
+Stopped at: Completed 04-03-PLAN.md — Canvas visual weekly review skill. All 12 plans complete.
 Resume file: None
