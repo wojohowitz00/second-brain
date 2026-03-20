@@ -2,16 +2,16 @@
 set -e
 
 APP_NAME="Second Brain"
-BUILD_DIR="apple/SecondBrain/.build/release"
+BUILD_DIR="apps/apple/SecondBrain/.build/release"
 APP_BUNDLE="dist/$APP_NAME.app"
 ICON_SOURCE="resources/app_icon_source.png"
 ICONSET_DIR="resources/icon.iconset"
 ICNS_FILE="$APP_BUNDLE/Contents/Resources/icon.icns"
 
 echo "Building Swift project..."
-cd apple/SecondBrain
+cd apps/apple/SecondBrain
 swift build -c release -Xswiftc -DRELEASE
-cd ../..
+cd ../../..
 
 echo "Creating App Bundle Structure..."
 rm -rf "$APP_BUNDLE"

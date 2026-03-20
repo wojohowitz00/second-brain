@@ -7,11 +7,11 @@
 
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/richardyu/Library/Mobile Documents/iCloud~md~obsidian/Documents/Home/01_Projects/Personal/second-brain/legacy-productivity-second_brain/_scripts/from-para-2026-02-08/start_listener.sh</string>
+        <string>/Users/richardyu/Library/Mobile Documents/iCloud~md~obsidian/Documents/Home/01_Projects/Personal/second-brain/archive/legacy-productivity/_scripts/from-para-2026-02-08/start_listener.sh</string>
     </array>
 
     <key>WorkingDirectory</key>
-    <string>/Users/richardyu/Library/Mobile Documents/iCloud~md~obsidian/Documents/Home/01_Projects/Personal/second-brain/legacy-productivity-second_brain/_scripts/from-para-2026-02-08</string>
+    <string>/Users/richardyu/Library/Mobile Documents/iCloud~md~obsidian/Documents/Home/01_Projects/Personal/second-brain/archive/legacy-productivity/_scripts/from-para-2026-02-08</string>
 
     <key>RunAtLoad</key>
     <true/>

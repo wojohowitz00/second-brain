@@ -16,7 +16,7 @@ echo "Cleaning previous builds..."
 rm -rf build dist
 
 # Add _scripts to Python path for imports
-export PYTHONPATH="$PROJECT_DIR/backend/_scripts:$PYTHONPATH"
+export PYTHONPATH="$PROJECT_DIR/apps/backend/_scripts:$PYTHONPATH"
 
 # Build .app bundle using PyInstaller
 echo ""
@@ -26,18 +26,18 @@ if [ ! -f "resources/icon.icns" ]; then
 fi
 
 echo "Building .app bundle with PyInstaller..."
-cd "$PROJECT_DIR/backend"
-uv run pyinstaller ../SecondBrain.spec --noconfirm
+cd "$PROJECT_DIR/apps/backend"
+uv run pyinstaller ../../scripts/SecondBrain.spec --noconfirm
 
 # Move dist to project root
 cd "$PROJECT_DIR"
-if [ -d "backend/dist" ]; then
-    mv backend/dist .
+if [ -d "apps/backend/dist" ]; then
+    mv apps/backend/dist .
 fi
 
 # Also move build directory
-if [ -d "backend/build" ]; then
-    mv backend/build .
+if [ -d "apps/backend/build" ]; then
+    mv apps/backend/build .
 fi
 
 # Verify bundle exists
