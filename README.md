@@ -1,3 +1,7 @@
+> **Status:** Legacy reference implementation.
+> Active PRD-aligned work now lives in `/Users/richardyu/PARA/01_Projects/Personal/apps/engram/second-brain`.
+> This repository remains useful for historical prompts, templates, and vault-scanning ideas, but not as the implementation base for Engram Second Brain.
+
 # Second Brain
 
 **Capture thoughts anywhere. Have them automatically organized.**
